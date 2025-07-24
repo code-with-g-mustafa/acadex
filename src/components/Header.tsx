@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { auth } from "@/lib/firebase";
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { useState, useEffect } from "react";
 
 const navLinks = [
   { href: "#", label: "Browse" },
@@ -14,6 +17,32 @@ const navLinks = [
 ];
 
 export function Header() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error signing in with Google: ", error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out: ", error);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -32,7 +61,11 @@ export function Header() {
           ))}
         </nav>
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost">Sign In with Google</Button>
+          {user ? (
+            <Button variant="ghost" onClick={handleSignOut}>Sign Out</Button>
+          ) : (
+            <Button variant="ghost" onClick={handleSignIn}>Sign In with Google</Button>
+          )}
         </div>
         <div className="md:hidden">
           <Sheet>
@@ -58,7 +91,11 @@ export function Header() {
                     </Link>
                   ))}
                 </nav>
-                <Button variant="ghost">Sign In with Google</Button>
+                 {user ? (
+                    <Button variant="ghost" onClick={handleSignOut}>Sign Out</Button>
+                  ) : (
+                    <Button variant="ghost" onClick={handleSignIn}>Sign In with Google</Button>
+                  )}
               </div>
             </SheetContent>
           </Sheet>
