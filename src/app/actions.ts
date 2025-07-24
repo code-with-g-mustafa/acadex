@@ -28,17 +28,17 @@ export async function getAISummary(documentText: string): Promise<SummarizeDocum
 export async function approveResource(resourceId: string) {
   try {
     await updateResourceStatus(resourceId, 'approved');
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error approving resource:", error);
-    throw new Error("Failed to approve resource.");
+    throw new Error(`Failed to approve resource: ${error.message}`);
   }
 }
 
 export async function rejectResource(resourceId: string) {
   try {
     await updateResourceStatus(resourceId, 'rejected');
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error rejecting resource:", error);
-    throw new Error("Failed to reject resource.");
+    throw new Error(`Failed to reject resource: ${error.message}`);
   }
 }
