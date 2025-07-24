@@ -40,7 +40,7 @@ const formSchema = z.object({
   semester: z.string().min(1, 'Please select a semester.'),
   subject: z.string().min(1, 'Please select a subject.'),
   fileType: z.enum(['Note', 'Past Paper', 'Lab Manual']),
-  file: z.instanceof(FileList).refine((files) => files?.length === 1, 'File is required.'),
+  file: z.any().refine((files) => files instanceof FileList && files?.length === 1, 'File is required.'),
 });
 
 type UploadFormProps = {
