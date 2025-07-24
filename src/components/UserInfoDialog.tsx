@@ -41,6 +41,7 @@ type UserInfoDialogProps = {
     universities: string[];
     departments: string[];
   };
+  handleGoogleSignIn: () => void;
 };
 
 export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDialogProps) {

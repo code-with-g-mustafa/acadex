@@ -25,7 +25,7 @@ export function Header() {
   const [isUserInfoDialogOpen, setIsUserInfoDialogOpen] = useState(false);
   const filters = getFilters();
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -101,7 +101,9 @@ export function Header() {
                   <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
                 </>
               ) : (
-                <Button onClick={handleSignIn}>Login</Button>
+                <Button asChild>
+                  <Link href="/login">Login</Link>
+                </Button>
               )}
           </div>
           <div className="md:hidden">
@@ -145,7 +147,9 @@ export function Header() {
                           <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
                         </>
                       ) : (
-                        <Button onClick={handleSignIn}>Login</Button>
+                        <Button asChild>
+                          <Link href="/login">Login</Link>
+                        </Button>
                       )}
                   </div>
                 </div>
@@ -159,6 +163,7 @@ export function Header() {
         onClose={() => setIsUserInfoDialogOpen(false)}
         onSave={handleSaveUserInfo}
         filters={filters}
+        handleGoogleSignIn={handleGoogleSignIn}
       />
     </>
   );
