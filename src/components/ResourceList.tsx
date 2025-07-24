@@ -3,9 +3,12 @@ import type { Resource } from "@/lib/data";
 
 type ResourceListProps = {
   resources: Resource[];
+  isAdmin?: boolean;
+  onApprove?: (id: string) => void;
+  onReject?: (id: string) => void;
 };
 
-export function ResourceList({ resources }: ResourceListProps) {
+export function ResourceList({ resources, isAdmin = false, onApprove, onReject }: ResourceListProps) {
   if (resources.length === 0) {
     return (
       <div className="text-center py-16">
@@ -20,7 +23,13 @@ export function ResourceList({ resources }: ResourceListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {resources.map((resource) => (
-        <ResourceCard key={resource.id} resource={resource} />
+        <ResourceCard 
+          key={resource.id} 
+          resource={resource}
+          isAdmin={isAdmin}
+          onApprove={onApprove}
+          onReject={onReject}
+        />
       ))}
     </div>
   );

@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export type Resource = {
@@ -16,8 +16,16 @@ export type Resource = {
   summary: string;
   shortNotes: string;
   content: string;
-  uploaderId?: string;
+  uploaderId: string;
 };
+
+export type UserData = {
+    uid: string;
+    email: string;
+    role: 'Student' | 'Admin';
+    university?: string;
+    department?: string;
+}
 
 const universities = ['University of Technology', 'City College'];
 const departments = ['Computer Science', 'Electrical Engineering'];
@@ -46,13 +54,29 @@ export const addResource = async (resource: Omit<Resource, 'id' | 'status' | 'su
     }
 }
 
-export const getResources = async () => {
+export const getResources = async (): Promise<Resource[]> => {
   const resourcesCol = collection(db, 'resources');
   const q = query(resourcesCol, where("status", "==", "approved"));
   const resourceSnapshot = await getDocs(q);
   const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
   return resourceList;
 };
+
+export const getAdminResources = async (): Promise<Resource[]> => {
+  const resourcesCol = collection(db, 'resources');
+  const resourceSnapshot = await getDocs(resourcesCol);
+  const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
+  return resourceList.sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return 0;
+  });
+};
+
+export const updateResourceStatus = async (resourceId: string, status: 'approved' | 'rejected') => {
+  const resourceRef = doc(db, 'resources', resourceId);
+  await updateDoc(resourceRef, { status });
+}
 
 export const getResourcesByUploader = async (uploaderId: string) => {
     const resourcesCol = collection(db, 'resources');
@@ -61,7 +85,6 @@ export const getResourcesByUploader = async (uploaderId: string) => {
     const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
     return resourceList;
 };
-
 
 export const getResourceById = async (id: string) => {
   const resourceRef = doc(db, 'resources', id);
@@ -73,6 +96,17 @@ export const getResourceById = async (id: string) => {
     return null;
   }
 };
+
+export const getUserData = async (uid: string): Promise<UserData | null> => {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+        return { uid, ...userSnap.data() } as UserData;
+    } else {
+        return null;
+    }
+}
 
 export const getFilters = () => ({
   universities,

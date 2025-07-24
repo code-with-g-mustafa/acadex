@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Resource } from '@/lib/data';
 import { FilterControls } from '@/components/FilterControls';
 import { ResourceList } from '@/components/ResourceList';
@@ -9,6 +9,9 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from './ui/skeleton';
+import { getUserData, getAdminResources, getResources } from '@/lib/data';
+import { useToast } from '@/hooks/use-toast';
+import { approveResource, rejectResource } from '@/app/actions';
 
 type DashboardClientProps = {
   initialResources: Resource[];
@@ -18,11 +21,17 @@ type DashboardClientProps = {
     semesters: string[];
     subjects: { [key: string]: string[] };
   };
+  isAdmin: boolean;
 };
 
 export function DashboardClient({ initialResources, filters }: DashboardClientProps) {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
+  const { toast } = useToast();
+
+  const [resources, setResources] = useState(initialResources);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [university, setUniversity] = useState('all');
   const [department, setDepartment] = useState('all');
@@ -34,14 +43,46 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   
   useEffect(() => {
     setMounted(true);
-    if (!loading && !user) {
-      router.push('/');
-    }
-  }, [user, loading, router]);
+  }, []);
 
+  useEffect(() => {
+    const checkUser = async () => {
+      if (!loading && !user) {
+        router.push('/');
+        return;
+      }
+      if (user) {
+        const userData = await getUserData(user.uid);
+        const userIsAdmin = userData?.role === 'Admin';
+        setIsAdmin(userIsAdmin);
+        
+        const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
+        setResources(fetchedResources);
+      }
+       setIsLoadingData(false);
+    };
+
+    if(mounted) {
+      checkUser();
+    }
+
+  }, [user, loading, router, mounted]);
+
+
+  const handleApprove = async (id: string) => {
+    await approveResource(id);
+    setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+    toast({ title: "Resource Approved", description: "The resource is now public." });
+  };
+
+  const handleReject = async (id: string) => {
+    await rejectResource(id);
+    setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+    toast({ title: "Resource Rejected", variant: "destructive" });
+  };
 
   const filteredResources = useMemo(() => {
-    return initialResources.filter(resource => {
+    return resources.filter(resource => {
       const searchMatch = searchQuery === '' ||
         resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         resource.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,9 +96,9 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
         searchMatch
       );
     });
-  }, [initialResources, university, department, semester, subject, searchQuery]);
+  }, [resources, university, department, semester, subject, searchQuery]);
 
-  if (!mounted || loading) {
+  if (!mounted || loading || isLoadingData) {
     return (
        <div className="space-y-8">
         <Card>
@@ -95,7 +136,12 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
         currentDepartment={department}
         currentUniversity={university}
       />
-      <ResourceList resources={filteredResources} />
+      <ResourceList 
+        resources={filteredResources} 
+        isAdmin={isAdmin}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 }
