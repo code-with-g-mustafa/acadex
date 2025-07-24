@@ -26,11 +26,11 @@ export function HeroSection() {
         <div>
           <Image
             src="https://placehold.co/600x400.png"
-            alt="Hero illustration of students collaborating"
+            alt="Hero illustration of a 3D animated character"
             width={600}
             height={400}
             className="rounded-lg shadow-xl"
-            data-ai-hint="students collaborating"
+            data-ai-hint="3D character animation"
           />
         </div>
       </div>
