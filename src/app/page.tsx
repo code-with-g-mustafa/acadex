@@ -12,7 +12,7 @@ export default async function Home() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary-foreground">
-            Welcome to ScholarSage
+            Welcome to Acadex
           </h1>
           <p className="text-lg text-muted-foreground mt-2">
             Your AI-powered academic resource hub.
