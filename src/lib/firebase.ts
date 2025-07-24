@@ -1,21 +1,27 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
 
 const firebaseConfig = {
-  projectId: "scholarsage-5mfk9",
-  appId: "1:919880189059:web:a324e113e349f3737887b6",
-  storageBucket: "scholarsage-5mfk9.firebasestorage.app",
-  apiKey: "AIzaSyC3L9hsZn14Q2ikkK6sULTiXgLd1CmuiDE",
-  authDomain: "scholarsage-5mfk9.firebaseapp.com",
-  messagingSenderId: "919880189059",
+  apiKey: "AIzaSyBAcG1bwdcTqjcKFjp0_vCrVR8SZfuMunc",
+  authDomain: "acadex-b7ce1.firebaseapp.com",
+  projectId: "acadex-b7ce1",
+  storageBucket: "acadex-b7ce1.firebasestorage.app",
+  messagingSenderId: "907632257963",
+  appId: "1:907632257963:web:7326fb4c819c2b5d3b80ee",
+  measurementId: "G-TEJ9V1B2XZ"
 };
 
 // Initialize Firebase
 let app;
+let analytics;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
+  if (typeof window !== 'undefined') {
+    analytics = getAnalytics(app);
+  }
 } else {
   app = getApps()[0];
 }
