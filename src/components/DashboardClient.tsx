@@ -44,6 +44,24 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
     setMounted(true);
   }, []);
 
+  const fetchResources = useCallback(async (userIsAdmin: boolean) => {
+    setIsLoadingData(true);
+    try {
+      const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
+      setResources(fetchedResources);
+    } catch (error) {
+      console.error("Failed to fetch resources:", error);
+      toast({
+        title: "Error fetching data",
+        description: "Could not load resources. Please try again later.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [toast]);
+
+
   useEffect(() => {
     const checkUser = async () => {
       if (loading) return; // Wait until auth state is loaded
@@ -58,34 +76,21 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       const userData = await getUserData(user.uid);
       const userIsAdmin = userData?.role === 'Admin';
       setIsAdmin(userIsAdmin);
-      
-      try {
-        const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
-        setResources(fetchedResources);
-      } catch (error) {
-        console.error("Failed to fetch resources:", error);
-        toast({
-          title: "Error fetching data",
-          description: "Could not load resources. Please try again later.",
-          variant: "destructive"
-        })
-      } finally {
-        setIsLoadingData(false);
-      }
+      fetchResources(userIsAdmin);
     };
 
     if(mounted) {
       checkUser();
     }
 
-  }, [user, loading, router, mounted, initialResources, toast]);
+  }, [user, loading, router, mounted, initialResources, fetchResources]);
 
 
   const handleApprove = async (id: string) => {
     try {
       await approveResource(id);
-      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
       toast({ title: "Resource Approved", description: "The resource is now public." });
+      await fetchResources(isAdmin); // Refetch data
     } catch(error) {
        toast({ title: "Approval Failed", variant: "destructive" });
     }
@@ -94,8 +99,8 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const handleReject = async (id: string) => {
     try {
       await rejectResource(id);
-      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
       toast({ title: "Resource Rejected", variant: "destructive" });
+      await fetchResources(isAdmin); // Refetch data
     } catch (error) {
        toast({ title: "Rejection Failed", variant: "destructive" });
     }
