@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Resource } from '@/lib/data';
 import { FilterControls } from '@/components/FilterControls';
 import { ResourceList } from '@/components/ResourceList';
+import { useRouter } from 'next/navigation';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
+import { Skeleton } from './ui/skeleton';
 
 type DashboardClientProps = {
   initialResources: Resource[];
@@ -16,6 +20,9 @@ type DashboardClientProps = {
 };
 
 export function DashboardClient({ initialResources, filters }: DashboardClientProps) {
+  const [user, loading] = useAuthState(auth);
+  const router = useRouter();
+
   const [university, setUniversity] = useState('all');
   const [department, setDepartment] = useState('all');
   const [semester, setSemester] = useState('all');
@@ -23,7 +30,14 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const [searchQuery, setSearchQuery] = useState('');
   
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  
+  useEffect(() => {
+    setMounted(true);
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
 
   const filteredResources = useMemo(() => {
     return initialResources.filter(resource => {
@@ -42,8 +56,26 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
     });
   }, [initialResources, university, department, semester, subject, searchQuery]);
 
-  if (!mounted) {
-    return null; // or a loading skeleton
+  if (!mounted || loading) {
+    return (
+       <div className="space-y-8">
+        <Card>
+          <CardContent className="p-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <Skeleton className="h-10 lg:col-span-2" />
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+              </div>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
   }
 
   return (
