@@ -10,8 +10,8 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User 
 import { useState, useEffect } from "react";
 
 const navLinks = [
-  { href: "#", label: "Browse" },
-  { href: "#", label: "Upload" },
+  { href: "/", label: "Browse" },
+  { href: "/upload", label: "Upload" },
   { href: "#", label: "My Uploads" },
   { href: "#", label: "Bookmarks" },
 ];
