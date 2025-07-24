@@ -89,20 +89,22 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const handleApprove = async (id: string) => {
     try {
       await approveResource(id);
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
       toast({ title: "Resource Approved", description: "The resource is now public." });
-      await fetchResources(isAdmin); // Refetch data
-    } catch(error) {
-       toast({ title: "Approval Failed", variant: "destructive" });
+    } catch(error: any) {
+       toast({ title: "Approval Failed", description: error.message, variant: "destructive" });
+       fetchResources(isAdmin);
     }
   };
 
   const handleReject = async (id: string) => {
     try {
       await rejectResource(id);
+       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
       toast({ title: "Resource Rejected", variant: "destructive" });
-      await fetchResources(isAdmin); // Refetch data
-    } catch (error) {
-       toast({ title: "Rejection Failed", variant: "destructive" });
+    } catch (error: any) {
+       toast({ title: "Rejection Failed", description: error.message, variant: "destructive" });
+       fetchResources(isAdmin);
     }
   };
 
