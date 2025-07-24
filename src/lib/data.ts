@@ -54,20 +54,19 @@ export const addResource = async (
         const fileUrl = await getDownloadURL(snapshot.ref);
 
         // This is a placeholder for actual text extraction from PDF/images
-        const extractedText = `Content from ${file.name}.`;
+        // In a real-world scenario, you'd use a Cloud Function to trigger on file upload
+        // and extract text content. For now, we'll use a placeholder.
+        const extractedText = `Content from ${file.name}. This is placeholder content.`;
 
-        // 2. Generate AI summary and notes
-        const aiData = await getAISummary(extractedText);
-
-        // 3. Create document in Firestore
+        // 2. Create document in Firestore without AI summary
         const docRef = await addDoc(collection(db, 'resources'), {
             ...resourceData,
             uploaderId,
             fileUrl,
             fileName: file.name,
             status: 'pending',
-            summary: aiData.summary,
-            shortNotes: aiData.shortNotes,
+            summary: '', // Will be generated on approval
+            shortNotes: '', // Will be generated on approval
             content: extractedText,
             tags: resourceData.title.toLowerCase().split(' ').slice(0,3),
         });
@@ -82,7 +81,27 @@ export const addResource = async (
 
 export const updateResourceStatus = async (resourceId: string, status: 'approved' | 'rejected') => {
   const resourceRef = doc(db, 'resources', resourceId);
-  await updateDoc(resourceRef, { status });
+  
+  if (status === 'approved') {
+    const resourceDoc = await getDoc(resourceRef);
+    const resourceData = resourceDoc.data();
+    
+    if (resourceData && resourceData.content) {
+      // Generate AI summary and notes on approval
+      const aiData = await getAISummary(resourceData.content);
+      await updateDoc(resourceRef, { 
+        status: 'approved',
+        summary: aiData.summary,
+        shortNotes: aiData.shortNotes
+      });
+    } else {
+      // Fallback if content is missing
+      await updateDoc(resourceRef, { status: 'approved' });
+    }
+  } else {
+    // For rejection, just update the status
+    await updateDoc(resourceRef, { status });
+  }
 }
 
 export const getResources = async (): Promise<Resource[]> => {

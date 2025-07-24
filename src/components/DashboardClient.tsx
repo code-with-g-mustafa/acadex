@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from './ui/skeleton';
 import { getUserData, getAdminResources, getResources, updateResourceStatus } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 
 type DashboardClientProps = {
@@ -31,6 +32,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const [resources, setResources] = useState(initialResources);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isApproving, setIsApproving] = useState<string | null>(null);
 
   const [university, setUniversity] = useState('all');
   const [department, setDepartment] = useState('all');
@@ -69,7 +71,6 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       if (!user) {
         // Not logged in, show initial public resources
         fetchResources(false);
-        setIsLoadingData(false);
         return;
       }
       
@@ -87,12 +88,20 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
 
 
   const handleApprove = async (id: string) => {
+    setIsApproving(id);
     try {
       await updateResourceStatus(id, 'approved');
-      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-      toast({ title: "Resource Approved", description: "The resource is now public." });
+      // Refetch all data to get the updated summary and notes
+      if (user) {
+          const userData = await getUserData(user.uid);
+          fetchResources(userData?.role === 'Admin');
+      }
+      toast({ title: "Resource Approved", description: "The resource is now public and summarized." });
     } catch(error: any) {
-       toast({ title: "Approval Failed", description: "You may not have the required permissions.", variant: "destructive" });
+       toast({ title: "Approval Failed", description: "The AI summary might have failed. Please try again.", variant: "destructive" });
+       console.error("Approval error:", error);
+    } finally {
+        setIsApproving(null);
     }
   };
 
@@ -122,6 +131,16 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       );
     });
   }, [resources, university, department, semester, subject, searchQuery]);
+  
+  if (isApproving) {
+    return (
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <h2 className="text-2xl font-semibold font-headline">AI is at work...</h2>
+            <p className="text-muted-foreground">Generating summary and notes for the resource. Please wait.</p>
+        </div>
+    )
+  }
 
   if (!mounted || loading || isLoadingData) {
     return (
