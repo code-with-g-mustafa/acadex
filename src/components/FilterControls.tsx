@@ -73,14 +73,14 @@ export function FilterControls({
               ))}
             </SelectContent>
           </Select>
-           <Select onValueChange={setSubject} defaultValue="all">
+           <Select onValueChange={setSemester} defaultValue="all">
             <SelectTrigger>
-              <SelectValue placeholder="Select Subject" />
+              <SelectValue placeholder="Select Semester" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Subjects</SelectItem>
-              {subjectList.map((sub) => (
-                <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+              <SelectItem value="all">All Semesters</SelectItem>
+              {filters.semesters.map((sem) => (
+                <SelectItem key={sem} value={sem}>{sem}</SelectItem>
               ))}
             </SelectContent>
           </Select>

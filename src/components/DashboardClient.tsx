@@ -7,6 +7,7 @@ import { ResourceList } from '@/components/ResourceList';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from './ui/skeleton';
 
 type DashboardClientProps = {
