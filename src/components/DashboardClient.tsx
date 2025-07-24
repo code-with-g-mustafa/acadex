@@ -21,7 +21,6 @@ type DashboardClientProps = {
     semesters: string[];
     subjects: { [key: string]: string[] };
   };
-  isAdmin: boolean;
 };
 
 export function DashboardClient({ initialResources, filters }: DashboardClientProps) {
@@ -47,38 +46,59 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
 
   useEffect(() => {
     const checkUser = async () => {
-      if (!loading && !user) {
-        router.push('/');
+      if (loading) return; // Wait until auth state is loaded
+
+      if (!user) {
+        // Not logged in, show initial public resources
+        setResources(initialResources);
+        setIsLoadingData(false);
         return;
       }
-      if (user) {
-        const userData = await getUserData(user.uid);
-        const userIsAdmin = userData?.role === 'Admin';
-        setIsAdmin(userIsAdmin);
-        
+      
+      const userData = await getUserData(user.uid);
+      const userIsAdmin = userData?.role === 'Admin';
+      setIsAdmin(userIsAdmin);
+      
+      try {
         const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
         setResources(fetchedResources);
+      } catch (error) {
+        console.error("Failed to fetch resources:", error);
+        toast({
+          title: "Error fetching data",
+          description: "Could not load resources. Please try again later.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoadingData(false);
       }
-       setIsLoadingData(false);
     };
 
     if(mounted) {
       checkUser();
     }
 
-  }, [user, loading, router, mounted]);
+  }, [user, loading, router, mounted, initialResources, toast]);
 
 
   const handleApprove = async (id: string) => {
-    await approveResource(id);
-    setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-    toast({ title: "Resource Approved", description: "The resource is now public." });
+    try {
+      await approveResource(id);
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+      toast({ title: "Resource Approved", description: "The resource is now public." });
+    } catch(error) {
+       toast({ title: "Approval Failed", variant: "destructive" });
+    }
   };
 
   const handleReject = async (id: string) => {
-    await rejectResource(id);
-    setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
-    toast({ title: "Resource Rejected", variant: "destructive" });
+    try {
+      await rejectResource(id);
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+      toast({ title: "Resource Rejected", variant: "destructive" });
+    } catch (error) {
+       toast({ title: "Rejection Failed", variant: "destructive" });
+    }
   };
 
   const filteredResources = useMemo(() => {
