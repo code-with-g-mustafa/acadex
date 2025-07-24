@@ -96,14 +96,14 @@ export function UploadForm({ filters }: UploadFormProps) {
             semester: values.semester,
             subject: values.subject,
             fileType: values.fileType,
-        });
+        }, user.uid);
 
         toast({
             title: "Upload Successful!",
             description: "Your resource has been submitted and is pending review.",
         });
         form.reset();
-        router.push('/dashboard');
+        router.push('/my-uploads');
     } catch (error) {
         toast({
             variant: "destructive",

@@ -84,7 +84,10 @@ export function Header() {
               </Link>
             ))}
              {user && (
+              <>
                <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
+               <Link href="/my-uploads" className="text-muted-foreground transition-colors hover:text-foreground">My Uploads</Link>
+              </>
              )}
           </nav>
           <div className="hidden md:flex items-center gap-4">
@@ -125,7 +128,10 @@ export function Header() {
                       </Link>
                     ))}
                      {user && (
-                        <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
+                        <>
+                          <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
+                          <Link href="/my-uploads" className="text-muted-foreground transition-colors hover:text-foreground">My Uploads</Link>
+                        </>
                      )}
                   </nav>
                   <div className="flex flex-col gap-4">

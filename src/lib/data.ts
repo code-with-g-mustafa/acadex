@@ -16,6 +16,7 @@ export type Resource = {
   summary: string;
   shortNotes: string;
   content: string;
+  uploaderId?: string;
 };
 
 const universities = ['University of Technology', 'City College'];
@@ -26,13 +27,11 @@ const subjects = {
   'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems'],
 };
 
-// This local array is now for fallback or initial structure, data will be fetched from Firestore
-const resources: Resource[] = [];
-
-export const addResource = async (resource: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl'>) => {
+export const addResource = async (resource: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl' | 'uploaderId'>, uploaderId: string) => {
     try {
         const docRef = await addDoc(collection(db, 'resources'), {
             ...resource,
+            uploaderId,
             status: 'pending',
             summary: 'AI summary is being generated...',
             shortNotes: 'AI notes are being generated...',
@@ -53,6 +52,14 @@ export const getResources = async () => {
   const resourceSnapshot = await getDocs(q);
   const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
   return resourceList;
+};
+
+export const getResourcesByUploader = async (uploaderId: string) => {
+    const resourcesCol = collection(db, 'resources');
+    const q = query(resourcesCol, where("uploaderId", "==", uploaderId));
+    const resourceSnapshot = await getDocs(q);
+    const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
+    return resourceList;
 };
 
 
