@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
 
@@ -8,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBAcG1bwdcTqjcKFjp0_vCrVR8SZfuMunc",
   authDomain: "acadex-b7ce1.firebaseapp.com",
   projectId: "acadex-b7ce1",
-  storageBucket: "acadex-b7ce1.firebasestorage.app",
+  storageBucket: "acadex-b7ce1.appspot.com",
   messagingSenderId: "907632257963",
   appId: "1:907632257963:web:7326fb4c819c2b5d3b80ee",
   measurementId: "G-TEJ9V1B2XZ"
@@ -28,6 +29,7 @@ if (!getApps().length) {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 
-export { auth, db, analytics };
+export { auth, db, storage, analytics };

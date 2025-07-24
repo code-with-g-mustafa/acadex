@@ -4,7 +4,11 @@ import { Header } from '@/components/Header';
 import { AIAssistant } from '@/components/AIAssistant';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileText } from 'lucide-react';
+import Image from 'next/image';
+
+function isImage(url: string) {
+    return /\.(jpg|jpeg|png|webp|gif)$/.test(url);
+}
 
 export default async function ResourcePage({ params }: { params: { id: string } }) {
   const resource = await getResourceById(params.id);
@@ -12,6 +16,8 @@ export default async function ResourcePage({ params }: { params: { id: string } 
   if (!resource) {
     notFound();
   }
+  
+  const isImageUrl = isImage(resource.fileUrl);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -28,12 +34,22 @@ export default async function ResourcePage({ params }: { params: { id: string } 
                 <CardDescription>{resource.subject} - {resource.university}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-[4/3] bg-muted/50 rounded-lg flex items-center justify-center p-8 border-dashed border-2">
-                   <div className="text-center text-muted-foreground">
-                    <FileText className="w-16 h-16 mx-auto" />
-                    <p className="mt-4 font-semibold">Document Preview</p>
-                    <p className="text-sm">Interactive PDF viewer would be rendered here.</p>
-                   </div>
+                <div className="aspect-video bg-muted/50 rounded-lg flex items-center justify-center p-2 border">
+                    {isImageUrl ? (
+                        <Image 
+                            src={resource.fileUrl} 
+                            alt={resource.title} 
+                            width={800} 
+                            height={600} 
+                            className="rounded-md object-contain max-h-full max-w-full"
+                        />
+                    ) : (
+                        <iframe 
+                            src={resource.fileUrl}
+                            className="w-full h-full"
+                            title={resource.title}
+                        />
+                    )}
                 </div>
               </CardContent>
             </Card>

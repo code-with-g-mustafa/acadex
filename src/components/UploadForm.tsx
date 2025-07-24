@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UploadCloud, Loader2 } from 'lucide-react';
+import { UploadCloud, Loader2, FileCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { addResource } from '@/lib/data';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,7 @@ const formSchema = z.object({
   semester: z.string().min(1, 'Please select a semester.'),
   subject: z.string().min(1, 'Please select a subject.'),
   fileType: z.enum(['Note', 'Past Paper', 'Lab Manual']),
-  file: z.any().refine((files) => files?.length === 1, 'File is required.'),
+  file: z.instanceof(FileList).refine((files) => files?.length === 1, 'File is required.'),
 });
 
 type UploadFormProps = {
@@ -74,6 +74,9 @@ export function UploadForm({ filters }: UploadFormProps) {
 
   const department = form.watch('department');
   const subjectList = filters.subjects[department] || [];
+  const fileList = form.watch('file');
+  const fileName = fileList?.[0]?.name;
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -87,6 +90,8 @@ export function UploadForm({ filters }: UploadFormProps) {
 
     setIsLoading(true);
 
+    const fileToUpload = values.file[0];
+
     try {
         await addResource({
             title: values.title,
@@ -96,7 +101,7 @@ export function UploadForm({ filters }: UploadFormProps) {
             semester: values.semester,
             subject: values.subject,
             fileType: values.fileType,
-        }, user.uid);
+        }, fileToUpload, user.uid);
 
         toast({
             title: "Upload Successful!",
@@ -110,6 +115,7 @@ export function UploadForm({ filters }: UploadFormProps) {
             title: "Upload Failed!",
             description: "Something went wrong. Please try again.",
         });
+        console.error(error);
     } finally {
         setIsLoading(false);
     }
@@ -272,24 +278,33 @@ export function UploadForm({ filters }: UploadFormProps) {
             <FormField
               control={form.control}
               name="file"
-              render={({ field: { onChange, value, ...fieldProps} }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>File</FormLabel>
                   <FormControl>
                     <div className="relative flex justify-center w-full h-32 px-6 pt-5 pb-6 border-2 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
-                            <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground"/>
-                            <div className="flex text-sm text-muted-foreground">
-                                <label htmlFor="file-upload" className="relative font-medium text-primary bg-transparent rounded-md cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 hover:text-primary/80">
-                                    <span>Upload a file</span>
-                                    <Input id="file-upload" type="file" className="sr-only" 
-                                        {...fieldProps}
-                                        onChange={(e) => onChange(e.target.files)}
-                                    />
-                                </label>
-                                <p className="pl-1">or drag and drop</p>
-                            </div>
-                            <p className="text-xs text-muted-foreground">PDF, DOCX, etc. up to 10MB</p>
+                            {fileName ? (
+                                <>
+                                 <FileCheck className="w-12 h-12 mx-auto text-green-500"/>
+                                 <p className="text-sm text-muted-foreground">{fileName}</p>
+                                </>
+                            ) : (
+                                <>
+                                 <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground"/>
+                                    <div className="flex text-sm text-muted-foreground">
+                                        <label htmlFor="file-upload" className="relative font-medium text-primary bg-transparent rounded-md cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 hover:text-primary/80">
+                                            <span>Upload a file</span>
+                                            <Input id="file-upload" type="file" className="sr-only" 
+                                                {...form.register("file")}
+                                                accept=".pdf,.png,.jpg,.jpeg"
+                                            />
+                                        </label>
+                                        <p className="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">PDF, PNG, JPG up to 10MB</p>
+                                </>
+                            )}
                         </div>
                     </div>
                   </FormControl>

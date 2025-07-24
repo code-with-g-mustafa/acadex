@@ -1,5 +1,7 @@
 import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, storage } from './firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getAISummary } from '@/app/actions';
 
 export type Resource = {
   id: string;
@@ -15,8 +17,9 @@ export type Resource = {
   status: 'pending' | 'approved' | 'rejected';
   summary: string;
   shortNotes: string;
-  content: string;
+  content: string; // This can hold extracted text for AI processing
   uploaderId: string;
+  fileName: string;
 };
 
 export type UserData = {
@@ -35,23 +38,51 @@ const subjects = {
   'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems'],
 };
 
-export const addResource = async (resource: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl' | 'uploaderId'>, uploaderId: string) => {
+export const addResource = async (
+    resourceData: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl' | 'uploaderId' | 'fileName'>,
+    file: File,
+    uploaderId: string
+) => {
+    if (!file) {
+        throw new Error("File is required.");
+    }
+
     try {
+        // 1. Upload file to Firebase Storage
+        const fileRef = ref(storage, `resources/${uploaderId}/${Date.now()}-${file.name}`);
+        const snapshot = await uploadBytes(fileRef, file);
+        const fileUrl = await getDownloadURL(snapshot.ref);
+
+        // This is a placeholder for actual text extraction from PDF/images
+        const extractedText = `Content from ${file.name}.`;
+
+        // 2. Generate AI summary and notes
+        const aiData = await getAISummary(extractedText);
+
+        // 3. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
-            ...resource,
+            ...resourceData,
             uploaderId,
+            fileUrl,
+            fileName: file.name,
             status: 'pending',
-            summary: 'AI summary is being generated...',
-            shortNotes: 'AI notes are being generated...',
-            content: 'Dummy content for now.',
-            tags: resource.title.toLowerCase().split(' ').slice(0,3),
-            fileUrl: '/placeholder.pdf',
+            summary: aiData.summary,
+            shortNotes: aiData.shortNotes,
+            content: extractedText,
+            tags: resourceData.title.toLowerCase().split(' ').slice(0,3),
         });
+
         return docRef.id;
+
     } catch (e) {
         console.error("Error adding document: ", e);
         throw new Error("Could not add resource to database.");
     }
+};
+
+export const updateResourceStatus = async (resourceId: string, status: 'approved' | 'rejected') => {
+  const resourceRef = doc(db, 'resources', resourceId);
+  await updateDoc(resourceRef, { status });
 }
 
 export const getResources = async (): Promise<Resource[]> => {
@@ -72,11 +103,6 @@ export const getAdminResources = async (): Promise<Resource[]> => {
       return 0;
   });
 };
-
-export const updateResourceStatus = async (resourceId: string, status: 'approved' | 'rejected') => {
-  const resourceRef = doc(db, 'resources', resourceId);
-  await updateDoc(resourceRef, { status });
-}
 
 export const getResourcesByUploader = async (uploaderId: string) => {
     const resourcesCol = collection(db, 'resources');
