@@ -16,9 +16,14 @@ export function MyUploadsClient() {
   const router = useRouter();
   const [uploads, setUploads] = useState<Resource[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (loadingAuth) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted || loadingAuth) return;
     if (!user) {
       router.push('/');
       return;
@@ -36,9 +41,9 @@ export function MyUploadsClient() {
     };
 
     fetchUploads();
-  }, [user, loadingAuth, router]);
+  }, [user, loadingAuth, router, mounted]);
 
-  if (loadingAuth || loadingData) {
+  if (!mounted || loadingAuth || loadingData) {
     return (
         <div className="space-y-4">
              <Skeleton className="h-12 w-full" />
