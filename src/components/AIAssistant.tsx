@@ -39,7 +39,7 @@ export function AIAssistant({ resource }: AIAssistantProps) {
                 <div className="space-y-4 text-sm mt-2 pr-4">
                     <h3 className="font-semibold font-headline">Summary</h3>
                     <p className="text-muted-foreground">{resource.summary}</p>
-                    <h3 className="font-semibold font-headline">Short Notes</h3>
+                    <h3 className="font-semibold font-headline mt-4">Short Notes</h3>
                     <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
                         {shortNotesList.map((note, index) => (
                             <li key={index}>{note}</li>
