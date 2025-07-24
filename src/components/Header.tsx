@@ -68,7 +68,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-sm shadow-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
             <Logo />
@@ -88,13 +88,18 @@ export function Header() {
              )}
           </nav>
           <div className="hidden md:flex items-center gap-4">
-            {loading ? (
-              <Button variant="ghost">Loading...</Button>
-            ) : user ? (
-              <Button variant="ghost" onClick={handleSignOut}>Sign Out</Button>
-            ) : (
-              <Button variant="ghost" onClick={handleSignIn}>Login</Button>
-            )}
+             {loading ? (
+                <Button variant="ghost" className="w-24 animate-pulse"></Button>
+              ) : user ? (
+                <>
+                 <Button asChild>
+                    <Link href="/upload">Upload</Link>
+                  </Button>
+                  <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+                </>
+              ) : (
+                <Button onClick={handleSignIn}>Login</Button>
+              )}
           </div>
           <div className="md:hidden">
             <Sheet>
@@ -123,13 +128,20 @@ export function Header() {
                         <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">Dashboard</Link>
                      )}
                   </nav>
-                  {loading ? (
-                     <Button variant="ghost">Loading...</Button>
-                  ) : user ? (
-                      <Button variant="ghost" onClick={handleSignOut}>Sign Out</Button>
-                    ) : (
-                      <Button variant="ghost" onClick={handleSignIn}>Login</Button>
-                    )}
+                  <div className="flex flex-col gap-4">
+                    {loading ? (
+                        <Button variant="ghost" className="w-full animate-pulse"></Button>
+                    ) : user ? (
+                        <>
+                          <Button asChild>
+                            <Link href="/upload">Upload</Link>
+                          </Button>
+                          <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+                        </>
+                      ) : (
+                        <Button onClick={handleSignIn}>Login</Button>
+                      )}
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>

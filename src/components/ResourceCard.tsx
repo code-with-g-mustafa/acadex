@@ -18,7 +18,7 @@ type ResourceCardProps = {
 
 export function ResourceCard({ resource }: ResourceCardProps) {
   return (
-    <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
+    <Card className="flex flex-col h-full hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
       <CardHeader>
         <div className="flex justify-between items-start">
             <CardTitle className="font-headline text-lg mb-2">{resource.title}</CardTitle>

@@ -40,9 +40,9 @@ export function FilterControls({
   const subjectList = filters.subjects[currentDepartment] || [];
 
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
