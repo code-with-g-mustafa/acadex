@@ -3,7 +3,7 @@ import { DashboardClient } from '@/components/DashboardClient';
 import { getResources, getFilters } from '@/lib/data';
 
 export default async function DashboardPage() {
-  const resources = getResources();
+  const resources = await getResources();
   const filters = getFilters();
 
   return (

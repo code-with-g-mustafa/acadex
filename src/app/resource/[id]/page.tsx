@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileText } from 'lucide-react';
 
 export default async function ResourcePage({ params }: { params: { id: string } }) {
-  const resource = getResourceById(params.id);
+  const resource = await getResourceById(params.id);
 
   if (!resource) {
     notFound();

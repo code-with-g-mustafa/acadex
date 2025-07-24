@@ -28,6 +28,8 @@ import { UploadCloud, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { addResource } from '@/lib/data';
 import { useRouter } from 'next/navigation';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '@/lib/firebase';
 
 
 const formSchema = z.object({
@@ -54,6 +56,8 @@ export function UploadForm({ filters }: UploadFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const [user] = useAuthState(auth);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,13 +76,19 @@ export function UploadForm({ filters }: UploadFormProps) {
   const subjectList = filters.subjects[department] || [];
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) {
+         toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "You must be logged in to upload a resource.",
+        });
+        return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
     try {
-        addResource({
+        await addResource({
             title: values.title,
             description: values.description,
             university: values.university,
