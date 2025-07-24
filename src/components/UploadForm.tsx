@@ -60,6 +60,7 @@ export function UploadForm({ filters }: UploadFormProps) {
       semester: '',
       subject: '',
       fileType: 'Note',
+      file: undefined,
     },
   });
 
@@ -239,7 +240,7 @@ export function UploadForm({ filters }: UploadFormProps) {
             <FormField
               control={form.control}
               name="file"
-              render={({ field: { onChange, ...fieldProps} }) => (
+              render={({ field: { onChange, value, ...fieldProps} }) => (
                 <FormItem>
                   <FormLabel>File</FormLabel>
                   <FormControl>
