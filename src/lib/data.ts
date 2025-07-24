@@ -74,6 +74,21 @@ const resources: Resource[] = [
   },
 ];
 
+export const addResource = (resource: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl'>) => {
+    const newResource: Resource = {
+        ...resource,
+        id: (resources.length + 1).toString(),
+        status: 'pending',
+        summary: 'AI summary is being generated...',
+        shortNotes: 'AI notes are being generated...',
+        content: 'Dummy content for now.',
+        tags: resource.title.toLowerCase().split(' ').slice(0,3),
+        fileUrl: '/placeholder.pdf',
+    };
+    resources.push(newResource);
+    return newResource;
+}
+
 export const getResources = (filters?: { [key: string]: string }) => {
   if (!filters) return resources;
   return resources.filter(resource => {
