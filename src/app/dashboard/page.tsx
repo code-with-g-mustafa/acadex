@@ -3,9 +3,6 @@ import { DashboardClient } from '@/components/DashboardClient';
 import { getFilters } from '@/lib/data';
 
 export default async function DashboardPage() {
-  // Data fetching logic is now handled entirely in DashboardClient.
-  // We pass an empty array for initialResources to prevent server-side fetching
-  // and let the client handle its own data needs based on user role.
   const filters = getFilters();
 
   return (

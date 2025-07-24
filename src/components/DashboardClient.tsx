@@ -9,9 +9,9 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from './ui/skeleton';
-import { getUserData, getAdminResources, getResources } from '@/lib/data';
+import { getUserData, getAdminResources, getResources, updateResourceStatus } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
-import { approveResource, rejectResource } from '@/app/actions';
+
 
 type DashboardClientProps = {
   initialResources: Resource[];
@@ -68,7 +68,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
 
       if (!user) {
         // Not logged in, show initial public resources
-        setResources(initialResources);
+        fetchResources(false);
         setIsLoadingData(false);
         return;
       }
@@ -83,28 +83,26 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       checkUser();
     }
 
-  }, [user, loading, router, mounted, initialResources, fetchResources]);
+  }, [user, loading, router, mounted, fetchResources]);
 
 
   const handleApprove = async (id: string) => {
     try {
-      await approveResource(id);
+      await updateResourceStatus(id, 'approved');
       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
       toast({ title: "Resource Approved", description: "The resource is now public." });
     } catch(error: any) {
-       toast({ title: "Approval Failed", description: error.message, variant: "destructive" });
-       fetchResources(isAdmin);
+       toast({ title: "Approval Failed", description: "You may not have the required permissions.", variant: "destructive" });
     }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await rejectResource(id);
-       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
+      await updateResourceStatus(id, 'rejected');
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
       toast({ title: "Resource Rejected", variant: "destructive" });
     } catch (error: any) {
-       toast({ title: "Rejection Failed", description: error.message, variant: "destructive" });
-       fetchResources(isAdmin);
+       toast({ title: "Rejection Failed", description: "You may not have the required permissions.", variant: "destructive" });
     }
   };
 
