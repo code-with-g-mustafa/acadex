@@ -1,11 +1,11 @@
 import { Header } from '@/components/Header';
 import { DashboardClient } from '@/components/DashboardClient';
-import { getResources, getFilters } from '@/lib/data';
+import { getFilters } from '@/lib/data';
 
 export default async function DashboardPage() {
-  // Data fetching logic is now handled in DashboardClient based on the user's role.
-  // We can pass initial empty or public data to avoid server-side auth complexity.
-  const resources = await getResources(); // Initially fetch only approved resources
+  // Data fetching logic is now handled entirely in DashboardClient.
+  // We pass an empty array for initialResources to prevent server-side fetching
+  // and let the client handle its own data needs based on user role.
   const filters = getFilters();
 
   return (
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
             Find the materials you need for your studies.
           </p>
         </div>
-        <DashboardClient initialResources={resources} filters={filters} />
+        <DashboardClient initialResources={[]} filters={filters} />
       </main>
     </div>
   );
