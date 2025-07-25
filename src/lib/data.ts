@@ -1,3 +1,4 @@
+
 import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -39,7 +40,15 @@ const subjects = {
 };
 
 export const addResource = async (
-    resourceData: Omit<Resource, 'id' | 'status' | 'summary' | 'shortNotes' | 'content' | 'tags' | 'fileUrl' | 'uploaderId' | 'fileName'>,
+    resourceData: {
+      title: string;
+      description: string;
+      university: string;
+      department: string;
+      semester: string;
+      subject: string;
+      fileType: 'Note' | 'Past Paper' | 'Lab Manual';
+    },
     file: File,
     uploaderId: string
 ) => {
@@ -53,7 +62,7 @@ export const addResource = async (
         const snapshot = await uploadBytes(fileRef, file);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create document in Firestore without AI summary or content extraction
+        // 2. Create document in Firestore with all form fields
         const docRef = await addDoc(collection(db, 'resources'), {
             ...resourceData,
             uploaderId,
