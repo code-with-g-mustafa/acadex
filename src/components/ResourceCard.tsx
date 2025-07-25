@@ -52,7 +52,7 @@ export function ResourceCard({ resource, isAdmin = false, onApprove, onReject }:
       </CardContent>
       <CardFooter className="flex justify-between items-center">
          <div className="flex flex-wrap gap-1">
-          {resource.tags.map((tag) => (
+          {resource.tags && resource.tags.map((tag) => (
             <Badge key={tag} variant="secondary">{tag}</Badge>
           ))}
         </div>

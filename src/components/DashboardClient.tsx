@@ -120,7 +120,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       const searchMatch = searchQuery === '' ||
         resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         resource.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        resource.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        (resource.tags && resource.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
 
       return (
         (university === 'all' || resource.university === university) &&
