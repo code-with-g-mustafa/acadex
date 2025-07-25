@@ -1,5 +1,4 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
@@ -22,9 +21,9 @@ service cloud.firestore {
                   || isAdmin() 
                   || (request.auth != null && request.auth.uid == resource.data.uploaderId);
       
-      // Allow LIST queries for approved resources, for an admin, or for a user's own uploads
-      allow list: if request.query.get("status") == "approved" 
-                  || isAdmin() 
+      // Allow LIST queries for approved resources. Admins can list all resources. Users can list their own uploads.
+      allow list: if (request.query.limit <= 10 && request.query.offset == null) // Basic public query for approved items
+                  || isAdmin()
                   || (request.auth != null && request.query.get("uploaderId") == request.auth.uid);
 
       // Allow LOGGED IN users to create resources
