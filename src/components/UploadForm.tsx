@@ -89,19 +89,14 @@ export function UploadForm({ filters }: UploadFormProps) {
     }
 
     setIsLoading(true);
-
-    const fileToUpload = values.file[0] as File;
-
+    
     try {
+        const fileToUpload = values.file[0] as File;
         await addResource({
-            title: values.title,
-            description: values.description,
-            university: values.university,
-            department: values.department,
-            semester: values.semester,
-            subject: values.subject,
-            fileType: values.fileType,
-        }, fileToUpload, user.uid);
+            ...values,
+            file: fileToUpload,
+            uploaderId: user.uid,
+        });
 
         toast({
             title: "Upload Successful!",

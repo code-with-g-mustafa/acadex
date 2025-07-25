@@ -40,7 +40,7 @@ const subjects = {
 };
 
 export const addResource = async (
-    resourceData: {
+    data: {
       title: string;
       description: string;
       university: string;
@@ -48,31 +48,37 @@ export const addResource = async (
       semester: string;
       subject: string;
       fileType: 'Note' | 'Past Paper' | 'Lab Manual';
+      file: File;
+      uploaderId: string;
     },
-    file: File,
-    uploaderId: string
 ) => {
-    if (!file) {
+    if (!data.file) {
         throw new Error("File is required.");
     }
 
     try {
         // 1. Upload file to Firebase Storage
-        const fileRef = ref(storage, `resources/${uploaderId}/${Date.now()}-${file.name}`);
-        const snapshot = await uploadBytes(fileRef, file);
+        const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${data.file.name}`);
+        const snapshot = await uploadBytes(fileRef, data.file);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create document in Firestore with all form fields
+        // 2. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
-            ...resourceData,
-            uploaderId,
+            title: data.title,
+            description: data.description,
+            university: data.university,
+            department: data.department,
+            semester: data.semester,
+            subject: data.subject,
+            fileType: data.fileType,
+            uploaderId: data.uploaderId,
             fileUrl,
-            fileName: file.name,
+            fileName: data.file.name,
             status: 'pending',
             summary: '', // Will be generated on approval
             shortNotes: '', // Will be generated on approval
             content: '', // Placeholder, will be populated on approval
-            tags: resourceData.title.toLowerCase().split(' ').slice(0,3),
+            tags: data.title.toLowerCase().split(' ').slice(0,3),
         });
 
         return docRef.id;
