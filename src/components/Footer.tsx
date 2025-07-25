@@ -1,6 +1,6 @@
 import { Logo } from "./Logo";
 import Link from "next/link";
-import { Github, Twitter, Linkedin } from "lucide-react";
+import { Github, Instagram, Linkedin } from "lucide-react";
 import { Button } from "./ui/button";
 
 const footerNavs = [
@@ -23,13 +23,13 @@ const socialLinks = [
     icon: <Linkedin />,
     href: "https://www.linkedin.com/in/gm-katbar",
   },
+   {
+    icon: <Instagram />,
+    href: "https://www.instagram.com/gm_katbar",
+  },
   {
     icon: <Github />,
     href: "https://github.com/code-with-g-mustafa",
-  },
-   {
-    icon: <Twitter />,
-    href: "https://www.instagram.com/gm_katbar",
   },
 ];
 
