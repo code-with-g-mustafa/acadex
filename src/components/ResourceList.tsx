@@ -6,9 +6,10 @@ type ResourceListProps = {
   isAdmin?: boolean;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  isProcessing?: string | null;
 };
 
-export function ResourceList({ resources, isAdmin = false, onApprove, onReject }: ResourceListProps) {
+export function ResourceList({ resources, isAdmin = false, onApprove, onReject, isProcessing }: ResourceListProps) {
   if (resources.length === 0) {
     return (
       <div className="text-center py-16">
@@ -29,6 +30,7 @@ export function ResourceList({ resources, isAdmin = false, onApprove, onReject }
           isAdmin={isAdmin}
           onApprove={onApprove}
           onReject={onReject}
+          isProcessing={isProcessing === resource.id}
         />
       ))}
     </div>

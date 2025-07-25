@@ -101,14 +101,23 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
       // For now, we'll use placeholder content based on the file name.
       const extractedText = `Content from ${resourceData.fileName}. This is placeholder content.`;
 
-      // Generate AI summary and notes on approval
-      const aiData = await getAISummary(extractedText);
+      // Update status to approved immediately
       await updateDoc(resourceRef, { 
         status: 'approved',
         content: extractedText,
-        summary: aiData.summary,
-        shortNotes: aiData.shortNotes
       });
+
+      // Generate AI summary and notes in the background
+      getAISummary(extractedText).then(aiData => {
+        updateDoc(resourceRef, { 
+          summary: aiData.summary,
+          shortNotes: aiData.shortNotes
+        });
+      }).catch(error => {
+        console.error("Failed to generate AI summary:", error);
+        // Optionally handle the error, e.g., by setting a flag on the document
+      });
+
     } else {
        throw new Error("Resource not found");
     }

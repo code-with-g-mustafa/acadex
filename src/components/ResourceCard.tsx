@@ -10,16 +10,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Resource } from "@/lib/data";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, X, Loader2 } from "lucide-react";
 
 type ResourceCardProps = {
   resource: Resource;
   isAdmin?: boolean;
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
+  isProcessing?: boolean;
 };
 
-export function ResourceCard({ resource, isAdmin = false, onApprove, onReject }: ResourceCardProps) {
+export function ResourceCard({ resource, isAdmin = false, onApprove, onReject, isProcessing = false }: ResourceCardProps) {
   const isPending = resource.status === 'pending';
 
   return (
@@ -36,6 +37,7 @@ export function ResourceCard({ resource, isAdmin = false, onApprove, onReject }:
                 }
                 className="capitalize"
               >
+                {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : null}
                 {resource.status}
               </Badge>
             ) : (
@@ -58,11 +60,11 @@ export function ResourceCard({ resource, isAdmin = false, onApprove, onReject }:
         </div>
         {isAdmin && isPending ? (
           <div className="flex gap-2">
-            <Button size="icon" variant="outline" className="h-8 w-8 bg-green-100 text-green-700 hover:bg-green-200" onClick={() => onApprove?.(resource.id)}>
-              <Check className="h-4 w-4"/>
+            <Button size="icon" variant="outline" className="h-8 w-8 bg-green-100 text-green-700 hover:bg-green-200" onClick={() => onApprove?.(resource.id)} disabled={isProcessing}>
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4"/>}
             </Button>
-             <Button size="icon" variant="outline" className="h-8 w-8 bg-red-100 text-red-700 hover:bg-red-200" onClick={() => onReject?.(resource.id)}>
-              <X className="h-4 w-4"/>
+             <Button size="icon" variant="outline" className="h-8 w-8 bg-red-100 text-red-700 hover:bg-red-200" onClick={() => onReject?.(resource.id)} disabled={isProcessing}>
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4"/>}
             </Button>
           </div>
         ) : (

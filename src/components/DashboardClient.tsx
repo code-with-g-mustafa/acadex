@@ -32,7 +32,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const [resources, setResources] = useState(initialResources);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isApproving, setIsApproving] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const [university, setUniversity] = useState('all');
   const [department, setDepartment] = useState('all');
@@ -88,30 +88,47 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
 
 
   const handleApprove = async (id: string) => {
-    setIsApproving(id);
+    setIsProcessing(id);
     try {
+      // Immediately update the local state to 'approved' for instant UI feedback
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
+
+      // Call the update function, which now runs the AI part in the background
       await updateResourceStatus(id, 'approved');
-      // Refetch all data to get the updated summary and notes
-      if (user) {
-          const userData = await getUserData(user.uid);
-          fetchResources(userData?.role === 'Admin');
-      }
-      toast({ title: "Resource Approved", description: "The resource is now public and summarized." });
+      
+      toast({ title: "Resource Approved", description: "The resource is now public. AI summary is being generated." });
+
+      // The AI summary will be generated in the background. 
+      // We can refetch after a delay to get the updated summary, or use a real-time listener.
+      // For simplicity, we'll refetch after a few seconds.
+      setTimeout(() => {
+        if (user) {
+          getUserData(user.uid).then(userData => {
+            fetchResources(userData?.role === 'Admin');
+          });
+        }
+      }, 5000); // 5-second delay to allow for AI processing
+
     } catch(error: any) {
-       toast({ title: "Approval Failed", description: "The AI summary might have failed. Please try again.", variant: "destructive" });
+       // Revert the local state if the initial approval fails
+       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'pending' } : r));
+       toast({ title: "Approval Failed", description: "Could not approve the resource. Please try again.", variant: "destructive" });
        console.error("Approval error:", error);
     } finally {
-        setIsApproving(null);
+        setIsProcessing(null);
     }
   };
 
   const handleReject = async (id: string) => {
+    setIsProcessing(id);
     try {
       await updateResourceStatus(id, 'rejected');
       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
       toast({ title: "Resource Rejected", variant: "destructive" });
     } catch (error: any) {
        toast({ title: "Rejection Failed", description: "You may not have the required permissions.", variant: "destructive" });
+    } finally {
+        setIsProcessing(null);
     }
   };
 
@@ -132,16 +149,6 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
     });
   }, [resources, university, department, semester, subject, searchQuery]);
   
-  if (isApproving) {
-    return (
-        <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            <h2 className="text-2xl font-semibold font-headline">AI is at work...</h2>
-            <p className="text-muted-foreground">Generating summary and notes for the resource. Please wait.</p>
-        </div>
-    )
-  }
-
   if (!mounted || loading || isLoadingData) {
     return (
        <div className="space-y-8">
@@ -185,6 +192,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
         isAdmin={isAdmin}
         onApprove={handleApprove}
         onReject={handleReject}
+        isProcessing={isProcessing}
       />
     </div>
   );
