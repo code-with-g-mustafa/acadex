@@ -31,12 +31,12 @@ export type UserData = {
     department?: string;
 }
 
-const universities = ['University of Technology', 'City College'];
-const departments = ['Computer Science', 'Electrical Engineering'];
+const universities = ['University of Technology', 'City College', 'Other'];
+const departments = ['Computer Science', 'Electrical Engineering', 'Other'];
 const semesters = ['1st', '2nd', '3rd', '4th'];
 const subjects = {
-  'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms'],
-  'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems'],
+  'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Other'],
+  'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Other'],
 };
 
 // Helper to extract text from a file. In a real app, this would be more sophisticated.
@@ -60,9 +60,12 @@ export const addResource = async (
       title: string;
       description: string;
       university: string;
+      otherUniversity?: string;
       department: string;
+      otherDepartment?: string;
       semester: string;
       subject: string;
+      otherSubject?: string;
       fileType: 'Note' | 'Past Paper' | 'Lab Manual';
       file: File;
       uploaderId: string;
@@ -83,14 +86,18 @@ export const addResource = async (
         // 2. Extract content for immediate use in AI assistant
         const extractedText = await extractTextFromFile(fileToUpload);
 
+        const university = data.university === 'Other' ? data.otherUniversity : data.university;
+        const department = data.department === 'Other' ? data.otherDepartment : data.department;
+        const subject = data.subject === 'Other' ? data.otherSubject : data.subject;
+
         // 3. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
             title: data.title,
             description: data.description,
-            university: data.university,
-            department: data.department,
+            university,
+            department,
             semester: data.semester,
-            subject: data.subject,
+            subject,
             fileType: data.fileType,
             uploaderId: data.uploaderId,
             fileUrl,
@@ -98,7 +105,7 @@ export const addResource = async (
             status: 'pending',
             summary: 'Summary will be generated upon approval.',
             shortNotes: 'Notes will be generated upon approval.',
-            content: extractedText, 
+            content: extractedText,
             tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
         });
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from 'react-hook-form';
@@ -27,16 +28,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from './ui/input';
 
 const formSchema = z.object({
   university: z.string().min(1, 'Please select a university.'),
+  otherUniversity: z.string().optional(),
   department: z.string().min(1, 'Please select a department.'),
-});
+  otherDepartment: z.string().optional(),
+}).refine(data => {
+    if (data.university === 'Other') return !!data.otherUniversity && data.otherUniversity.length > 0;
+    return true;
+}, { message: "Please specify the university name", path: ["otherUniversity"] })
+.refine(data => {
+    if (data.department === 'Other') return !!data.otherDepartment && data.otherDepartment.length > 0;
+    return true;
+}, { message: "Please specify the department name", path: ["otherDepartment"] });
+
 
 type UserInfoDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: z.infer<typeof formSchema>) => void;
+  onSave: (data: { university: string, department: string }) => void;
   filters: {
     universities: string[];
     departments: string[];
@@ -49,12 +61,19 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
     resolver: zodResolver(formSchema),
     defaultValues: {
       university: '',
+      otherUniversity: '',
       department: '',
+      otherDepartment: '',
     },
   });
 
+  const university = form.watch('university');
+  const department = form.watch('department');
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onSave(values);
+    const universityToSave = values.university === 'Other' ? values.otherUniversity! : values.university;
+    const departmentToSave = values.department === 'Other' ? values.otherDepartment! : values.department;
+    onSave({ university: universityToSave, department: departmentToSave });
   }
 
   return (
@@ -90,6 +109,21 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
                 </FormItem>
               )}
             />
+            {university === 'Other' && (
+              <FormField
+                control={form.control}
+                name="otherUniversity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>University Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter university name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="department"
@@ -112,6 +146,21 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
                 </FormItem>
               )}
             />
+            {department === 'Other' && (
+              <FormField
+                control={form.control}
+                name="otherDepartment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter department name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <DialogFooter>
               <Button type="submit">Save and Continue</Button>
             </DialogFooter>

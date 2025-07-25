@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -36,12 +37,26 @@ const formSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   university: z.string().min(1, 'Please select a university.'),
+  otherUniversity: z.string().optional(),
   department: z.string().min(1, 'Please select a department.'),
+  otherDepartment: z.string().optional(),
   semester: z.string().min(1, 'Please select a semester.'),
   subject: z.string().min(1, 'Please select a subject.'),
+  otherSubject: z.string().optional(),
   fileType: z.enum(['Note', 'Past Paper', 'Lab Manual']),
   file: z.any().refine((files) => files instanceof FileList && files?.length === 1, 'File is required.'),
-});
+}).refine(data => {
+    if (data.university === 'Other') return !!data.otherUniversity && data.otherUniversity.length > 0;
+    return true;
+}, { message: "Please specify the university name", path: ["otherUniversity"] })
+.refine(data => {
+    if (data.department === 'Other') return !!data.otherDepartment && data.otherDepartment.length > 0;
+    return true;
+}, { message: "Please specify the department name", path: ["otherDepartment"] })
+.refine(data => {
+    if (data.subject === 'Other') return !!data.otherSubject && data.otherSubject.length > 0;
+    return true;
+}, { message: "Please specify the subject name", path: ["otherSubject"] });
 
 type UploadFormProps = {
   filters: {
@@ -64,15 +79,20 @@ export function UploadForm({ filters }: UploadFormProps) {
       title: '',
       description: '',
       university: '',
+      otherUniversity: '',
       department: '',
+      otherDepartment: '',
       semester: '',
       subject: '',
+      otherSubject: '',
       fileType: 'Note',
       file: undefined,
     },
   });
 
+  const university = form.watch('university');
   const department = form.watch('department');
+  const subject = form.watch('subject');
   const subjectList = filters.subjects[department] || [];
   const fileList = form.watch('file');
   const fileName = fileList?.[0]?.name;
@@ -147,6 +167,21 @@ export function UploadForm({ filters }: UploadFormProps) {
                     </FormItem>
                 )}
                 />
+                {university === 'Other' && (
+                  <FormField
+                    control={form.control}
+                    name="otherUniversity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>University Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter university name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                 control={form.control}
                 name="department"
@@ -169,6 +204,21 @@ export function UploadForm({ filters }: UploadFormProps) {
                     </FormItem>
                 )}
                 />
+                 {department === 'Other' && (
+                  <FormField
+                    control={form.control}
+                    name="otherDepartment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter department name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -218,6 +268,21 @@ export function UploadForm({ filters }: UploadFormProps) {
                     </FormItem>
                   )}
                 />
+                 {subject === 'Other' && (
+                  <FormField
+                    control={form.control}
+                    name="otherSubject"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter subject name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
             </div>
              <FormField
               control={form.control}

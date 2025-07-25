@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -35,8 +36,17 @@ const formSchema = z.object({
   email: z.string().email('Please enter a valid email.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   university: z.string().min(1, 'Please select a university.'),
+  otherUniversity: z.string().optional(),
   department: z.string().min(1, 'Please select a department.'),
-});
+  otherDepartment: z.string().optional(),
+}).refine(data => {
+    if (data.university === 'Other') return !!data.otherUniversity && data.otherUniversity.length > 0;
+    return true;
+}, { message: "Please specify the university name", path: ["otherUniversity"] })
+.refine(data => {
+    if (data.department === 'Other') return !!data.otherDepartment && data.otherDepartment.length > 0;
+    return true;
+}, { message: "Please specify the department name", path: ["otherDepartment"] });
 
 type RegisterFormProps = {
   filters: {
@@ -56,9 +66,15 @@ export function RegisterForm({ filters }: RegisterFormProps) {
       email: '',
       password: '',
       university: '',
+      otherUniversity: '',
       department: '',
+      otherDepartment: '',
     },
   });
+  
+  const university = form.watch('university');
+  const department = form.watch('department');
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -66,12 +82,15 @@ export function RegisterForm({ filters }: RegisterFormProps) {
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
+      
+      const universityToSave = values.university === 'Other' ? values.otherUniversity : values.university;
+      const departmentToSave = values.department === 'Other' ? values.otherDepartment : values.department;
 
       // Save additional user info to Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
-        university: values.university,
-        department: values.department,
+        university: universityToSave,
+        department: departmentToSave,
         role: 'Student', // Default role
       });
 
@@ -144,6 +163,21 @@ export function RegisterForm({ filters }: RegisterFormProps) {
                 </FormItem>
               )}
             />
+            {university === 'Other' && (
+              <FormField
+                control={form.control}
+                name="otherUniversity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>University Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter university name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="department"
@@ -166,6 +200,21 @@ export function RegisterForm({ filters }: RegisterFormProps) {
                 </FormItem>
               )}
             />
+             {department === 'Other' && (
+              <FormField
+                control={form.control}
+                name="otherDepartment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter department name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
