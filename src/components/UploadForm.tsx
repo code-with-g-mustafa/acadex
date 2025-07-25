@@ -319,7 +319,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         Submitting...
                     </>
                 ) : (
-                    'Submit for Review'
+                    'Submit'
                 )}
             </Button>
           </form>
