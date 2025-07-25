@@ -90,7 +90,7 @@ export function UploadForm({ filters }: UploadFormProps) {
 
     setIsLoading(true);
 
-    const fileToUpload = values.file[0];
+    const fileToUpload = values.file[0] as File;
 
     try {
         await addResource({
