@@ -34,6 +34,7 @@ export function FilterControls({
   setSemester,
   setSubject,
   setSearchQuery,
+  currentUniversity,
   currentDepartment,
 }: FilterControlsProps) {
 
@@ -42,7 +43,7 @@ export function FilterControls({
   return (
     <Card className="shadow-sm">
       <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-center">
           <div className="relative lg:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
@@ -82,6 +83,17 @@ export function FilterControls({
               {filters.semesters.map((sem) => (
                 <SelectItem key={sem} value={sem}>{sem}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+          <Select onValueChange={setSubject} defaultValue="all" disabled={!currentDepartment || currentDepartment === 'all'}>
+            <SelectTrigger>
+                <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Subjects</SelectItem>
+                {subjectList.map((sub) => (
+                    <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

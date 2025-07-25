@@ -4,7 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
-  title: 'Acadex',
+  title: 'ScholarSage',
   description: 'An AI-powered academic resource hub for students.',
 };
 

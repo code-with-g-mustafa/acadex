@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Upload } from 'lucide-react';
 
 export function MyUploadsClient() {
   const [user, loadingAuth] = useAuthState(auth);
@@ -52,6 +53,21 @@ export function MyUploadsClient() {
         </div>
     );
   }
+  
+  if (uploads.length === 0) {
+    return (
+      <div className="text-center py-16 border rounded-lg">
+        <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h2 className="mt-4 text-2xl font-semibold font-headline">No Uploads Yet</h2>
+        <p className="text-muted-foreground mt-2 mb-6">
+          You haven't uploaded any resources. Why not share something with the community?
+        </p>
+        <Button asChild>
+            <Link href="/upload">Upload a Resource</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="border rounded-lg">
@@ -66,8 +82,7 @@ export function MyUploadsClient() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {uploads.length > 0 ? (
-            uploads.map((upload) => (
+          {uploads.map((upload) => (
               <TableRow key={upload.id}>
                 <TableCell className="font-medium">{upload.title}</TableCell>
                 <TableCell>{upload.subject}</TableCell>
@@ -93,13 +108,7 @@ export function MyUploadsClient() {
                 </TableCell>
               </TableRow>
             ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                You haven't uploaded any resources yet.
-              </TableCell>
-            </TableRow>
-          )}
+          }
         </TableBody>
       </Table>
     </div>
