@@ -5,6 +5,7 @@ import { AIAssistant } from '@/components/AIAssistant';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
+import { Footer } from '@/components/Footer';
 
 function isImage(url: string) {
     return /\.(jpg|jpeg|png|webp|gif)$/.test(url);
@@ -59,6 +60,7 @@ export default async function ResourcePage({ params }: { params: { id: string } 
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

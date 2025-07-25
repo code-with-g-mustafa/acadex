@@ -1,6 +1,7 @@
 import { Header } from '@/components/Header';
 import { RegisterForm } from '@/components/RegisterForm';
 import { getFilters } from '@/lib/data';
+import { Footer } from '@/components/Footer';
 
 export default function RegisterPage() {
   const filters = getFilters();
@@ -21,6 +22,7 @@ export default function RegisterPage() {
           <RegisterForm filters={filters} />
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

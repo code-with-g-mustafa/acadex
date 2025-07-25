@@ -1,6 +1,7 @@
 import { Header } from '@/components/Header';
 import { UploadForm } from '@/components/UploadForm';
 import { getFilters } from '@/lib/data';
+import { Footer } from '@/components/Footer';
 
 export default function UploadPage() {
   const filters = getFilters();
@@ -21,6 +22,7 @@ export default function UploadPage() {
           <UploadForm filters={filters} />
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

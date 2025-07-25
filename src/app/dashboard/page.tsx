@@ -1,6 +1,7 @@
 import { Header } from '@/components/Header';
 import { DashboardClient } from '@/components/DashboardClient';
 import { getFilters } from '@/lib/data';
+import { Footer } from '@/components/Footer';
 
 export default async function DashboardPage() {
   const filters = getFilters();
@@ -19,6 +20,7 @@ export default async function DashboardPage() {
         </div>
         <DashboardClient initialResources={[]} filters={filters} />
       </main>
+      <Footer />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Header } from '@/components/Header';
 import { MyUploadsClient } from './MyUploadsClient';
+import { Footer } from '@/components/Footer';
 
 export default function MyUploadsPage() {
   return (
@@ -16,6 +17,7 @@ export default function MyUploadsPage() {
         </div>
         <MyUploadsClient />
       </main>
+      <Footer />
     </div>
   );
 }
