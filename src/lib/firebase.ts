@@ -2,7 +2,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 
 const firebaseConfig = {
@@ -18,14 +18,20 @@ const firebaseConfig = {
 // Initialize Firebase
 let app;
 let analytics;
+
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
   if (typeof window !== 'undefined') {
-    analytics = getAnalytics(app);
+    isSupported().then((supported) => {
+      if (supported && firebaseConfig.measurementId && firebaseConfig.projectId) {
+        analytics = getAnalytics(app);
+      }
+    });
   }
 } else {
   app = getApps()[0];
 }
+
 
 const auth = getAuth(app);
 const db = getFirestore(app);

@@ -9,7 +9,7 @@ export function HeroSection() {
       <div className="grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6 text-center md:text-left">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-headline text-foreground">
-            Unlock Your Academic Potential with ScholarSage
+            Unlock Your Academic Potential with Acadex
           </h1>
           <p className="text-lg text-muted-foreground">
             Your AI-powered hub for university notes, past papers, and smart study tools. Collaborate, learn, and excel together.
