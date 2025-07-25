@@ -53,12 +53,7 @@ export const addResource = async (
         const snapshot = await uploadBytes(fileRef, file);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // This is a placeholder for actual text extraction from PDF/images
-        // In a real-world scenario, you'd use a Cloud Function to trigger on file upload
-        // and extract text content. For now, we'll use a placeholder.
-        const extractedText = `Content from ${file.name}. This is placeholder content.`;
-
-        // 2. Create document in Firestore without AI summary
+        // 2. Create document in Firestore without AI summary or content extraction
         const docRef = await addDoc(collection(db, 'resources'), {
             ...resourceData,
             uploaderId,
@@ -67,7 +62,7 @@ export const addResource = async (
             status: 'pending',
             summary: '', // Will be generated on approval
             shortNotes: '', // Will be generated on approval
-            content: extractedText,
+            content: '', // Placeholder, will be populated on approval
             tags: resourceData.title.toLowerCase().split(' ').slice(0,3),
         });
 
@@ -86,17 +81,21 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
     const resourceDoc = await getDoc(resourceRef);
     const resourceData = resourceDoc.data();
     
-    if (resourceData && resourceData.content) {
+    if (resourceData) {
+      // In a real app, you would use a service to extract text from the file at resourceData.fileUrl
+      // For now, we'll use placeholder content based on the file name.
+      const extractedText = `Content from ${resourceData.fileName}. This is placeholder content.`;
+
       // Generate AI summary and notes on approval
-      const aiData = await getAISummary(resourceData.content);
+      const aiData = await getAISummary(extractedText);
       await updateDoc(resourceRef, { 
         status: 'approved',
+        content: extractedText,
         summary: aiData.summary,
         shortNotes: aiData.shortNotes
       });
     } else {
-      // Fallback if content is missing
-      await updateDoc(resourceRef, { status: 'approved' });
+       throw new Error("Resource not found");
     }
   } else {
     // For rejection, just update the status
