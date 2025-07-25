@@ -39,6 +39,22 @@ const subjects = {
   'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems'],
 };
 
+// Helper to extract text from a file. In a real app, this would be more sophisticated.
+async function extractTextFromFile(file: File): Promise<string> {
+    if (file.type === 'application/pdf') {
+        // In a real app, you would use a library like pdf.js to extract text.
+        // For this demo, we'll return placeholder text.
+        return `[Text from PDF: ${file.name}] - This is a placeholder. Full text extraction requires a server-side process or a more advanced client-side library.`;
+    }
+    if (file.type.startsWith('image/')) {
+        // For images, text extraction (OCR) would be a complex server-side task.
+        return `[Image file: ${file.name}] - No text content available.`;
+    }
+    // For plain text files
+    return file.text();
+}
+
+
 export const addResource = async (
     data: {
       title: string;
@@ -58,12 +74,16 @@ export const addResource = async (
 
     try {
         const fileToUpload = data.file;
+
         // 1. Upload file to Firebase Storage
         const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create document in Firestore
+        // 2. Extract content for immediate use in AI assistant
+        const extractedText = await extractTextFromFile(fileToUpload);
+
+        // 3. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
             title: data.title,
             description: data.description,
@@ -76,55 +96,58 @@ export const addResource = async (
             fileUrl,
             fileName: fileToUpload.name,
             status: 'pending',
-            summary: '', // Will be generated on approval
-            shortNotes: '', // Will be generated on approval
-            content: '', // Placeholder, will be populated on approval
-            tags: data.title.toLowerCase().split(' ').slice(0,3),
+            summary: 'Summary will be generated upon approval.',
+            shortNotes: 'Notes will be generated upon approval.',
+            content: extractedText, 
+            tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
         });
 
         return docRef.id;
 
     } catch (e) {
         console.error("Error adding document: ", e);
-        throw new Error("Could not add resource to database.");
+        throw new Error("Could not add resource. You may not have the required permissions.");
     }
 };
 
 export const updateResourceStatus = async (resourceId: string, status: 'approved' | 'rejected') => {
   const resourceRef = doc(db, 'resources', resourceId);
   
-  if (status === 'approved') {
-    const resourceDoc = await getDoc(resourceRef);
-    const resourceData = resourceDoc.data();
-    
-    if (resourceData) {
-      // In a real app, you would use a service to extract text from the file at resourceData.fileUrl
-      // For now, we'll use placeholder content based on the file name.
-      const extractedText = `Content from ${resourceData.fileName}. This is placeholder content.`;
-
-      // Update status to approved immediately
-      await updateDoc(resourceRef, { 
-        status: 'approved',
-        content: extractedText,
-      });
-
-      // Generate AI summary and notes in the background
-      getAISummary(extractedText).then(aiData => {
-        updateDoc(resourceRef, { 
-          summary: aiData.summary,
-          shortNotes: aiData.shortNotes
+  try {
+    if (status === 'approved') {
+      const resourceDoc = await getDoc(resourceRef);
+      const resourceData = resourceDoc.data();
+      
+      if (resourceData && resourceData.content) {
+        // Update status to approved immediately
+        await updateDoc(resourceRef, { 
+          status: 'approved',
         });
-      }).catch(error => {
-        console.error("Failed to generate AI summary:", error);
-        // Optionally handle the error, e.g., by setting a flag on the document
-      });
 
+        // Generate AI summary and notes in the background (no await)
+        getAISummary(resourceData.content).then(aiData => {
+          updateDoc(resourceRef, { 
+            summary: aiData.summary,
+            shortNotes: aiData.shortNotes
+          });
+        }).catch(error => {
+          console.error("Failed to generate AI summary:", error);
+           updateDoc(resourceRef, { 
+            summary: "AI summary generation failed.",
+            shortNotes: "AI note generation failed."
+          });
+        });
+
+      } else {
+         throw new Error("Resource not found or has no content to process.");
+      }
     } else {
-       throw new Error("Resource not found");
+      // For rejection, just update the status
+      await updateDoc(resourceRef, { status });
     }
-  } else {
-    // For rejection, just update the status
-    await updateDoc(resourceRef, { status });
+  } catch (error) {
+     console.error("Error updating resource status: ", error);
+     throw new Error("Could not update resource status.");
   }
 }
 
@@ -136,14 +159,8 @@ export const getResources = async (): Promise<Resource[]> => {
 };
 
 export const getAdminResources = async (): Promise<Resource[]> => {
-  const resourcesCol = collection(db, 'resources');
-  const resourceSnapshot = await getDocs(resourcesCol);
-  const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
-  return resourceList.sort((a, b) => {
-      if (a.status === 'pending' && b.status !== 'pending') return -1;
-      if (a.status !== 'pending' && b.status === 'pending') return 1;
-      return 0;
-  });
+  // This function is now the same as getResources, client-side logic will handle sorting.
+  return getResources();
 };
 
 export const getResourcesByUploader = async (uploaderId: string) => {
