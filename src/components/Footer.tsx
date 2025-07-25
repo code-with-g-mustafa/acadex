@@ -65,7 +65,7 @@ export function Footer() {
                     </div>
                 </div>
                  <div className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} Acadex. All rights reserved.</p>
+                    <p>by Ghulam Mustafa</p>
                 </div>
             </div>
         </footer>
