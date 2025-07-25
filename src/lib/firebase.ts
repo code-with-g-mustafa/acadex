@@ -1,4 +1,4 @@
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -16,20 +16,15 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 let analytics;
 
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-  if (typeof window !== 'undefined') {
-    isSupported().then((supported) => {
-      if (supported && firebaseConfig.measurementId && firebaseConfig.projectId) {
-        analytics = getAnalytics(app);
-      }
-    });
-  }
-} else {
-  app = getApps()[0];
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
 }
 
 
