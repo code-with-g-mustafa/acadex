@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -49,7 +50,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const fetchResources = useCallback(async (userIsAdmin: boolean) => {
     setIsLoadingData(true);
     try {
-      const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
+      const fetchedResources = await getResources();
       setResources(fetchedResources);
     } catch (error) {
       console.error("Failed to fetch resources:", error);
@@ -66,10 +67,9 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
 
   useEffect(() => {
     const checkUser = async () => {
-      if (loading) return; // Wait until auth state is loaded
+      if (loading) return;
 
       if (!user) {
-        // Not logged in, show initial public resources
         fetchResources(false);
         return;
       }
@@ -90,27 +90,19 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const handleApprove = async (id: string) => {
     setIsProcessing(id);
     try {
-      // Immediately update the local state to 'approved' for instant UI feedback
       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
-
-      // Call the update function, which now runs the AI part in the background
       await updateResourceStatus(id, 'approved');
-      
       toast({ title: "Resource Approved", description: "The resource is now public. AI summary is being generated." });
 
-      // The AI summary will be generated in the background. 
-      // We can refetch after a delay to get the updated summary, or use a real-time listener.
-      // For simplicity, we'll refetch after a few seconds.
       setTimeout(() => {
         if (user) {
           getUserData(user.uid).then(userData => {
             fetchResources(userData?.role === 'Admin');
           });
         }
-      }, 5000); // 5-second delay to allow for AI processing
+      }, 5000);
 
     } catch(error: any) {
-       // Revert the local state if the initial approval fails
        setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'pending' } : r));
        toast({ title: "Approval Failed", description: "Could not approve the resource. Please try again.", variant: "destructive" });
        console.error("Approval error:", error);
@@ -133,7 +125,19 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   };
 
   const filteredResources = useMemo(() => {
-    return resources.filter(resource => {
+    let resourcesToFilter = resources;
+
+    if (!isAdmin) {
+      resourcesToFilter = resources.filter(r => r.status === 'approved');
+    } else {
+       resourcesToFilter = resources.sort((a, b) => {
+          if (a.status === 'pending' && b.status !== 'pending') return -1;
+          if (a.status !== 'pending' && b.status === 'pending') return 1;
+          return 0;
+      });
+    }
+
+    return resourcesToFilter.filter(resource => {
       const searchMatch = searchQuery === '' ||
         resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         resource.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -147,7 +151,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
         searchMatch
       );
     });
-  }, [resources, university, department, semester, subject, searchQuery]);
+  }, [resources, university, department, semester, subject, searchQuery, isAdmin]);
   
   if (!mounted || loading || isLoadingData) {
     return (

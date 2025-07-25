@@ -129,8 +129,7 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
 
 export const getResources = async (): Promise<Resource[]> => {
   const resourcesCol = collection(db, 'resources');
-  const q = query(resourcesCol, where("status", "==", "approved"));
-  const resourceSnapshot = await getDocs(q);
+  const resourceSnapshot = await getDocs(resourcesCol);
   const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
   return resourceList;
 };
