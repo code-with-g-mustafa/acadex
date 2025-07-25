@@ -57,9 +57,10 @@ export const addResource = async (
     }
 
     try {
+        const fileToUpload = data.file;
         // 1. Upload file to Firebase Storage
-        const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${data.file.name}`);
-        const snapshot = await uploadBytes(fileRef, data.file);
+        const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
+        const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
         // 2. Create document in Firestore
@@ -73,7 +74,7 @@ export const addResource = async (
             fileType: data.fileType,
             uploaderId: data.uploaderId,
             fileUrl,
-            fileName: data.file.name,
+            fileName: fileToUpload.name,
             status: 'pending',
             summary: '', // Will be generated on approval
             shortNotes: '', // Will be generated on approval
