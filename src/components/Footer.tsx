@@ -20,16 +20,16 @@ const footerNavs = [
 
 const socialLinks = [
   {
-    icon: <Twitter />,
-    href: "#",
-  },
-  {
     icon: <Linkedin />,
-    href: "#",
+    href: "https://www.linkedin.com/in/gm-katbar",
   },
   {
     icon: <Github />,
-    href: "#",
+    href: "https://github.com/code-with-g-mustafa",
+  },
+   {
+    icon: <Twitter />,
+    href: "https://www.instagram.com/gm_katbar",
   },
 ];
 
@@ -56,7 +56,7 @@ export function Footer() {
                          <div className="flex items-center gap-2">
                              {socialLinks.map((item, idx) => (
                                 <Button key={idx} asChild variant="ghost" size="icon">
-                                    <Link href={item.href}>
+                                    <Link href={item.href} target="_blank" rel="noopener noreferrer">
                                         {item.icon}
                                     </Link>
                                 </Button>
@@ -65,7 +65,7 @@ export function Footer() {
                     </div>
                 </div>
                  <div className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} Acadex. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Acadex. All rights reserved. Made by Ghulam Mustafa.</p>
                 </div>
             </div>
         </footer>
