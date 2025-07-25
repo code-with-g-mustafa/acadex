@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is an admin
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // Rules for user profiles
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Rules for resources
+    match /resources/{resourceId} {
+      // ANYONE can read a resource if its status is 'approved'
+      // An ADMIN can read any resource
+      // The UPLOADER can read their own resource, regardless of status
+      allow read: if resource.data.status == 'approved' 
+                  || isAdmin() 
+                  || (request.auth != null && request.auth.uid == resource.data.uploaderId);
+      
+      // Allow LIST queries for approved resources, for an admin, or for a user's own uploads
+      allow list: if request.query.get("status") == "approved" 
+                  || isAdmin() 
+                  || (request.auth != null && request.query.get("uploaderId") == request.auth.uid);
+
+      // Allow LOGGED IN users to create resources
+      allow create: if request.auth != null;
+
+      // ONLY ADMINS can update resources (for approve/reject)
+      allow update: if isAdmin();
+      
+      // NO ONE can delete resources
+      allow delete: if false;
+    }
+  }
+}
