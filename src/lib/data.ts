@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc, setDoc, FieldValue, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getAISummary } from '@/app/actions';
@@ -25,48 +25,71 @@ export type Resource = {
 
 export type UserData = {
     uid: string;
-    email: string;
+    email: string | null;
+    name: string;
     role: 'Student' | 'Admin';
     university?: string;
     department?: string;
 }
 
-const universities = ['University of Technology', 'City College', 'Other'];
-const departments = ['Computer Science', 'Electrical Engineering', 'Other'];
-const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
-const subjects: { [key: string]: string[] } = {
-  'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Database Systems', 'Operating Systems', 'Other'],
-  'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Electromagnetic Theory', 'Power Systems', 'Other'],
-  'Other': ['Other']
+// Default data for initialization
+const defaultFilters = {
+    universities: ['University of Technology', 'City College'],
+    departments: ['Computer Science', 'Electrical Engineering'],
+    semesters: ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'],
+    subjects: {
+      'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Database Systems', 'Operating Systems'],
+      'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Electromagnetic Theory', 'Power Systems'],
+    }
 };
 
-// Helper to extract text from a file. In a real app, this would be more sophisticated.
-async function extractTextFromFile(file: File): Promise<string> {
-    if (file.type === 'application/pdf') {
-        // In a real app, you would use a library like pdf.js to extract text.
-        // For this demo, we'll return placeholder text.
-        // This process can fail for corrupted PDFs, so we wrap it.
-        try {
-            return `[Text from PDF: ${file.name}] - This is a placeholder. Full text extraction requires a server-side process or a more advanced client-side library.`;
-        } catch (error) {
-            console.error("Failed to extract text from PDF:", error);
-            return `[Could not extract text from PDF: ${file.name}]`;
-        }
-    }
-    if (file.type.startsWith('image/')) {
-        // For images, text extraction (OCR) would be a complex server-side task.
-        return `[Image file: ${file.name}] - No text content available.`;
-    }
-    if (file.type.startsWith('text/')) {
-        try {
-            return await file.text();
-        } catch (error) {
-            console.error("Failed to read text file:", error);
-            return `[Could not read text from file: ${file.name}]`
-        }
-    }
-    // Default fallback for other file types
-    return `[Unsupported file type: ${file.type}] - No text content available.`;
+// Functions to manage dynamic filter data in Firestore
+
+async function initializeMetadataDoc(docRef: any, initialData: any) {
+    await setDoc(docRef, initialData);
+    return initialData;
+}
+
+export async function getDynamicFilters() {
+    const universitiesRef = doc(db, 'metadata', 'universities');
+    const departmentsRef = doc(db, 'metadata', 'departments');
+    const subjectsRef = doc(db, 'metadata', 'subjects');
+
+    const [universitiesSnap, departmentsSnap, subjectsSnap] = await Promise.all([
+        getDoc(universitiesRef),
+        getDoc(departmentsRef),
+        getDoc(subjectsRef),
+    ]);
+
+    const universities = universitiesSnap.exists() ? universitiesSnap.data().list : await initializeMetadataDoc(universitiesRef, { list: defaultFilters.universities });
+    const departments = departmentsSnap.exists() ? departmentsSnap.data().list : await initializeMetadataDoc(departmentsRef, { list: defaultFilters.departments });
+    const subjects = subjectsSnap.exists() ? subjectsSnap.data() : await initializeMetadataDoc(subjectsRef, defaultFilters.subjects);
+
+    return {
+        universities: universities.list || universities,
+        departments: departments.list || departments,
+        subjects: subjects,
+        semesters: defaultFilters.semesters,
+    };
+}
+
+
+export async function addUniversity(name: string) {
+    const docRef = doc(db, 'metadata', 'universities');
+    await updateDoc(docRef, { list: arrayUnion(name) });
+}
+
+export async function addDepartment(name: string) {
+    const docRef = doc(db, 'metadata', 'departments');
+    await updateDoc(docRef, { list: arrayUnion(name) });
+    // Also initialize an empty subject list for the new department
+    const subjectsRef = doc(db, 'metadata', 'subjects');
+    await updateDoc(subjectsRef, { [name]: [] });
+}
+
+export async function addSubject(department: string, subject: string) {
+    const docRef = doc(db, 'metadata', 'subjects');
+    await updateDoc(docRef, { [department]: arrayUnion(subject) });
 }
 
 
@@ -95,7 +118,7 @@ export const addResource = async (
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create document in Firestore WITHOUT text extraction
+        // 2. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
             title: data.title,
             description: data.description,
@@ -215,9 +238,8 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
 }
 
 export const getFilters = () => ({
-  universities,
-  departments,
-  semesters,
-  subjects,
+  universities: defaultFilters.universities,
+  departments: defaultFilters.departments,
+  semesters: defaultFilters.semesters,
+  subjects: defaultFilters.subjects,
 });
-

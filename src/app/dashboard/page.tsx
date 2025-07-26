@@ -1,10 +1,10 @@
 import { Header } from '@/components/Header';
 import { DashboardClient } from '@/components/DashboardClient';
-import { getFilters } from '@/lib/data';
+import { getDynamicFilters } from '@/lib/data';
 import { Footer } from '@/components/Footer';
 
 export default async function DashboardPage() {
-  const filters = getFilters();
+  const filters = await getDynamicFilters();
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

@@ -48,7 +48,7 @@ const formSchema = z.object({
 type UserInfoDialogProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { university: string, department: string }) => void;
+  onSave: (data: { university: string, department: string, isNewUniversity: boolean, isNewDepartment: boolean }) => void;
   filters: {
     universities: string[];
     departments: string[];
@@ -71,9 +71,11 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
   const department = form.watch('department');
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const universityToSave = values.university === 'Other' ? values.otherUniversity! : values.university;
-    const departmentToSave = values.department === 'Other' ? values.otherDepartment! : values.department;
-    onSave({ university: universityToSave, department: departmentToSave });
+    const isNewUniversity = values.university === 'Other';
+    const isNewDepartment = values.department === 'Other';
+    const universityToSave = isNewUniversity ? values.otherUniversity! : values.university;
+    const departmentToSave = isNewDepartment ? values.otherDepartment! : values.department;
+    onSave({ university: universityToSave, department: departmentToSave, isNewUniversity, isNewDepartment });
   }
 
   return (
@@ -103,6 +105,7 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
                       {filters.universities.map((uni) => (
                         <SelectItem key={uni} value={uni}>{uni}</SelectItem>
                       ))}
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -140,6 +143,7 @@ export function UserInfoDialog({ isOpen, onClose, onSave, filters }: UserInfoDia
                       {filters.departments.map((dep) => (
                         <SelectItem key={dep} value={dep}>{dep}</SelectItem>
                       ))}
+                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

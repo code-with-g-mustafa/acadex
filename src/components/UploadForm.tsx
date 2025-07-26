@@ -27,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UploadCloud, Loader2, FileCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { addResource } from '@/lib/data';
+import { addResource, addUniversity, addDepartment, addSubject } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -122,15 +122,24 @@ export function UploadForm({ filters }: UploadFormProps) {
     
     try {
         const fileToUpload = values.file[0] as File;
-        const universityToSave = values.university === 'Other' ? values.otherUniversity : values.university;
-        const departmentToSave = values.department === 'Other' ? values.otherDepartment : values.department;
-        const subjectToSave = values.subject === 'Other' ? values.otherSubject : values.subject;
+        
+        const isNewUniversity = values.university === 'Other';
+        const isNewDepartment = values.department === 'Other';
+        const isNewSubject = values.subject === 'Other';
+
+        const universityToSave = isNewUniversity ? values.otherUniversity! : values.university;
+        const departmentToSave = isNewDepartment ? values.otherDepartment! : values.department;
+        const subjectToSave = isNewSubject ? values.otherSubject! : values.subject;
+
+        if (isNewUniversity) await addUniversity(universityToSave);
+        if (isNewDepartment) await addDepartment(departmentToSave);
+        if (isNewSubject) await addSubject(departmentToSave, subjectToSave);
 
         await addResource({
             ...values,
-            university: universityToSave!,
-            department: departmentToSave!,
-            subject: subjectToSave!,
+            university: universityToSave,
+            department: departmentToSave,
+            subject: subjectToSave,
             file: fileToUpload,
             uploaderId: user.uid,
         });
@@ -178,6 +187,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         {filters.universities.map((uni) => (
                             <SelectItem key={uni} value={uni}>{uni}</SelectItem>
                         ))}
+                        <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -218,6 +228,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         {filters.departments.map((dep) => (
                             <SelectItem key={dep} value={dep}>{dep}</SelectItem>
                         ))}
+                        <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -269,7 +280,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department || department === ''}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -279,10 +290,11 @@ export function UploadForm({ filters }: UploadFormProps) {
                           {subjectList.map((sub) => (
                             <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                           ))}
+                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {!department || department === '' ? "Please select a department first." : "Select a subject from the list."}
+                        {!department ? "Please select a department first." : "Select a subject from the list."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -410,4 +422,5 @@ export function UploadForm({ filters }: UploadFormProps) {
     </Card>
   );
 }
+
 

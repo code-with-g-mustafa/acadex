@@ -8,10 +8,10 @@ import { Menu } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { UserInfoDialog } from "./UserInfoDialog";
-import { getFilters } from "@/lib/data";
+import { getDynamicFilters, addUniversity, addDepartment, UserData } from "@/lib/data";
 import { ThemeToggle } from "./ThemeToggle";
 
 
@@ -24,7 +24,19 @@ const navLinks = [
 export function Header() {
   const [user, loading] = useAuthState(auth);
   const [isUserInfoDialogOpen, setIsUserInfoDialogOpen] = useState(false);
-  const filters = getFilters();
+  const [filters, setFilters] = useState<{ universities: string[]; departments: string[]; }>({ universities: [], departments: [] });
+
+  useEffect(() => {
+    async function fetchFilters() {
+      const dynamicFilters = await getDynamicFilters();
+      setFilters({
+        universities: dynamicFilters.universities,
+        departments: dynamicFilters.departments,
+      });
+    }
+    fetchFilters();
+  }, []);
+
 
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
@@ -44,16 +56,27 @@ export function Header() {
     }
   };
 
-  const handleSaveUserInfo = async (data: { university: string, department: string }) => {
+  const handleSaveUserInfo = async (data: { university: string, department: string, isNewUniversity: boolean, isNewDepartment: boolean }) => {
      if (user) {
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        name: user.displayName,
-        email: user.email,
-        role: "Student", // default role
-        university: data.university,
-        department: data.department,
-      }, { merge: true });
+        const userRef = doc(db, "users", user.uid);
+        
+        // Add new university/department to the dynamic lists if they are new
+        if (data.isNewUniversity) {
+            await addUniversity(data.university);
+        }
+        if (data.isNewDepartment) {
+            await addDepartment(data.department);
+        }
+
+        const userData: Partial<UserData> = {
+            name: user.displayName || 'Anonymous',
+            email: user.email,
+            role: "Student", // default role
+            university: data.university,
+            department: data.department,
+        }
+
+        await setDoc(userRef, userData, { merge: true });
     }
     setIsUserInfoDialogOpen(false);
   };

@@ -30,6 +30,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import Link from 'next/link';
+import { addUniversity, addDepartment, UserData } from '@/lib/data';
 
 
 const formSchema = z.object({
@@ -83,16 +84,28 @@ export function RegisterForm({ filters }: RegisterFormProps) {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
       
-      const universityToSave = values.university === 'Other' ? values.otherUniversity : values.university;
-      const departmentToSave = values.department === 'Other' ? values.otherDepartment : values.department;
+      const isNewUniversity = values.university === 'Other';
+      const isNewDepartment = values.department === 'Other';
+      const universityToSave = isNewUniversity ? values.otherUniversity! : values.university;
+      const departmentToSave = isNewDepartment ? values.otherDepartment! : values.department;
 
-      // Save additional user info to Firestore
-      await setDoc(doc(db, 'users', user.uid), {
+      // Add new university/department to the dynamic lists if they are new
+      if (isNewUniversity) {
+          await addUniversity(universityToSave);
+      }
+      if (isNewDepartment) {
+          await addDepartment(departmentToSave);
+      }
+
+      const userData: Partial<UserData> = {
         email: user.email,
         university: universityToSave,
         department: departmentToSave,
         role: 'Student', // Default role
-      });
+      };
+
+      // Save additional user info to Firestore
+      await setDoc(doc(db, 'users', user.uid), userData);
 
       toast({
         title: "Registration Successful!",
@@ -157,6 +170,7 @@ export function RegisterForm({ filters }: RegisterFormProps) {
                       {filters.universities.map((uni) => (
                         <SelectItem key={uni} value={uni}>{uni}</SelectItem>
                       ))}
+                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -194,6 +208,7 @@ export function RegisterForm({ filters }: RegisterFormProps) {
                       {filters.departments.map((dep) => (
                         <SelectItem key={dep} value={dep}>{dep}</SelectItem>
                       ))}
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
