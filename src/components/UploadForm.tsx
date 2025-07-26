@@ -145,7 +145,7 @@ export function UploadForm({ filters }: UploadFormProps) {
         toast({
             variant: "destructive",
             title: "Upload Failed!",
-            description: error.message || "Something went wrong. Please try again.",
+            description: error.message || "An unknown error occurred. Please check the console for details.",
         });
         console.error("Upload error details:", error);
     } finally {
@@ -269,7 +269,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department || department === ''}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -282,13 +282,15 @@ export function UploadForm({ filters }: UploadFormProps) {
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {department && department !== 'Other' ? "Select a subject from the list." : "Please select a department first."}
+                        {!department || department === '' ? "Please select a department first." : "Select a subject from the list."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                 {subject === 'Other' && (
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {subject === 'Other' && (
                   <FormField
                     control={form.control}
                     name="otherSubject"
@@ -408,3 +410,4 @@ export function UploadForm({ filters }: UploadFormProps) {
     </Card>
   );
 }
+
