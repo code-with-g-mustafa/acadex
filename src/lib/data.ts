@@ -37,6 +37,7 @@ const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 const subjects: { [key: string]: string[] } = {
   'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Database Systems', 'Operating Systems', 'Other'],
   'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Electromagnetic Theory', 'Power Systems', 'Other'],
+  'Other': ['Other']
 };
 
 // Helper to extract text from a file. In a real app, this would be more sophisticated.
@@ -44,14 +45,28 @@ async function extractTextFromFile(file: File): Promise<string> {
     if (file.type === 'application/pdf') {
         // In a real app, you would use a library like pdf.js to extract text.
         // For this demo, we'll return placeholder text.
-        return `[Text from PDF: ${file.name}] - This is a placeholder. Full text extraction requires a server-side process or a more advanced client-side library.`;
+        // This process can fail for corrupted PDFs, so we wrap it.
+        try {
+            return `[Text from PDF: ${file.name}] - This is a placeholder. Full text extraction requires a server-side process or a more advanced client-side library.`;
+        } catch (error) {
+            console.error("Failed to extract text from PDF:", error);
+            return `[Could not extract text from PDF: ${file.name}]`;
+        }
     }
     if (file.type.startsWith('image/')) {
         // For images, text extraction (OCR) would be a complex server-side task.
         return `[Image file: ${file.name}] - No text content available.`;
     }
-    // For plain text files
-    return file.text();
+    if (file.type.startsWith('text/')) {
+        try {
+            return await file.text();
+        } catch (error) {
+            console.error("Failed to read text file:", error);
+            return `[Could not read text from file: ${file.name}]`
+        }
+    }
+    // Default fallback for other file types
+    return `[Unsupported file type: ${file.type}] - No text content available.`;
 }
 
 
@@ -60,12 +75,9 @@ export const addResource = async (
       title: string;
       description: string;
       university: string;
-      otherUniversity?: string;
       department: string;
-      otherDepartment?: string;
       semester: string;
       subject: string;
-      otherSubject?: string;
       fileType: 'Note' | 'Past Paper' | 'Lab Manual';
       file: File;
       uploaderId: string;
@@ -86,18 +98,14 @@ export const addResource = async (
         // 2. Extract content for immediate use in AI assistant
         const extractedText = await extractTextFromFile(fileToUpload);
 
-        const university = data.university === 'Other' ? data.otherUniversity : data.university;
-        const department = data.department === 'Other' ? data.otherDepartment : data.department;
-        const subject = data.subject === 'Other' ? data.otherSubject : data.subject;
-
         // 3. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
             title: data.title,
             description: data.description,
-            university,
-            department,
+            university: data.university,
+            department: data.department,
             semester: data.semester,
-            subject,
+            subject: data.subject,
             fileType: data.fileType,
             uploaderId: data.uploaderId,
             fileUrl,
@@ -111,9 +119,13 @@ export const addResource = async (
 
         return docRef.id;
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Error adding document: ", e);
-        throw new Error("Could not add resource. Check permissions and data format.");
+        // Provide a more user-friendly error message
+        if (e.code === 'permission-denied') {
+            throw new Error("You do not have permission to upload. Please check your account and Firestore rules.");
+        }
+        throw new Error(e.message || "Could not add resource. Check permissions and data format.");
     }
 };
 

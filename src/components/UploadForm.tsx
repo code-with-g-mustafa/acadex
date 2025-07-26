@@ -102,7 +102,7 @@ export function UploadForm({ filters }: UploadFormProps) {
     } else {
       setSubjectList([]);
     }
-  }, [department, filters.subjects, form]);
+  }, [department, filters.subjects]);
 
   const fileList = form.watch('file');
   const fileName = fileList?.[0]?.name;
@@ -141,13 +141,13 @@ export function UploadForm({ filters }: UploadFormProps) {
         });
         form.reset();
         router.push('/my-uploads');
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Upload Failed!",
-            description: "Something went wrong. Please try again.",
+            description: error.message || "Something went wrong. Please try again.",
         });
-        console.error(error);
+        console.error("Upload error details:", error);
     } finally {
         setIsLoading(false);
     }
@@ -269,7 +269,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!department}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -282,7 +282,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {department ? "Select a subject from the list." : "Please select a department first."}
+                        {department && department !== 'Other' ? "Select a subject from the list." : "Please select a department first."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

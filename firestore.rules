@@ -2,33 +2,13 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if the user is an admin
-    function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
-
-    // Rules for user profiles
     match /users/{userId} {
-      // A user can read and write to their own user document
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Rules for resources
     match /resources/{resourceId} {
-      // ANYONE can read a resource if its status is 'approved'
-      // An ADMIN can read any resource
-      // The UPLOADER can read their own resource, regardless of status
-      allow read: if resource.data.status == 'approved' 
-                  || isAdmin() 
-                  || (request.auth != null && request.auth.uid == resource.data.uploaderId);
-      
-      // Allow LIST queries for everyone (client-side will filter for approved status for non-admins)
-      allow list: if true;
-
-      // Allow LOGGED IN users to create resources, but with specific validation rules
-      allow create: if request.auth != null
-                    && request.resource.data.uploaderId == request.auth.uid
+      allow read: if true;
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.uploaderId
                     && request.resource.data.status == 'pending'
                     && request.resource.data.title is string
                     && request.resource.data.description is string
@@ -38,14 +18,11 @@ service cloud.firestore {
                     && request.resource.data.subject is string
                     && request.resource.data.fileType is string
                     && request.resource.data.fileUrl is string
-                    && request.resource.data.fileName is string;
+                    && request.resource.data.fileName is string
+                    && request.resource.data.content is string
+                    && request.resource.data.tags is list;
 
-      // ONLY ADMINS can update the status of resources
-      // Uploader can't change it after submitting
-      allow update: if isAdmin();
-      
-      // NO ONE can delete resources from the app
-      allow delete: if false;
+      allow update: if request.auth != null; // Allow admins/users to update status/summary
     }
   }
 }
