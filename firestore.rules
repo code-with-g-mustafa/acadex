@@ -3,43 +3,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check a user's role from the /users collection
     function isUserRole(role) {
-      // Ensure the user is authenticated before checking their role
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
-    // Users can read and write their own user document.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth.uid == userId;
     }
 
-    // Rules for resource documents
-    match /resources/{resourceId} {
-      // ANYONE can read a single resource document IF its status is 'approved'.
-      allow get: if resource.data.status == 'approved';
-      
-      // ANYONE can query the resources collection. 
-      // The client-side code is responsible for filtering to show only 'approved' resources to the public.
-      allow list; 
-      
-      // Authenticated users who are 'Student' or 'Admin' can create new resources.
-      allow create: if request.auth != null && (isUserRole('Student') || isUserRole('Admin'));
-      
-      // Only an 'Admin' can update a resource (e.g., to approve or reject it).
-      allow update: if isUserRole('Admin');
-
-      // No one can delete a resource directly.
-      allow delete: if false;
-    }
-
-    // Rules for public metadata used for form dropdowns
     match /metadata/{docId} {
-      // ANYONE can read the metadata (e.g., lists of universities, departments).
       allow read;
+      allow create, update: if request.auth != null;
+    }
 
-      // ANY authenticated user can update the metadata (e.g., add a new university).
-      allow update: if request.auth != null;
+    match /resources/{resourceId} {
+      // Any user can get a resource if it's approved.
+      allow get: if resource.data.status == 'approved';
+
+      // Admins can see all documents.
+      // Anyone can query for approved documents.
+      allow list: if isUserRole("Admin") || request.query.get("status") == "approved";
+      
+      // Admins and Students can create resources.
+      allow create: if isUserRole("Admin") || isUserRole("Student");
+
+      // Only Admins can update a resource (e.g., to approve or reject it).
+      allow update: if isUserRole("Admin");
+
+      // Only Admins or the original uploader can delete a resource.
+      allow delete: if isUserRole("Admin") || request.auth.uid == resource.data.uploaderId;
     }
   }
 }

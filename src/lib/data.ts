@@ -106,6 +106,7 @@ export async function addDepartment(name: string) {
     await ensureMetadataDoc(docRef, { list: defaultFilters.departments });
     await updateDoc(docRef, { list: arrayUnion(name) });
     const subjectsRef = doc(db, 'metadata', 'subjects');
+    await ensureMetadataDoc(subjectsRef, defaultFilters.subjects);
     const subjectsDoc = await getDoc(subjectsRef);
     if (!subjectsDoc.data()?.[name]) {
         await updateDoc(subjectsRef, { [name]: [] });
@@ -216,10 +217,12 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
   }
 }
 
+// Fetches only approved resources for public view
 export const getResources = async (): Promise<Resource[]> => {
   try {
     const resourcesCol = collection(db, 'resources');
-    const resourceSnapshot = await getDocs(resourcesCol);
+    const q = query(resourcesCol, where("status", "==", "approved"));
+    const resourceSnapshot = await getDocs(q);
     const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
     return resourceList;
   } catch(error) {
@@ -228,8 +231,17 @@ export const getResources = async (): Promise<Resource[]> => {
   }
 };
 
+// Fetches all resources for admin view
 export const getAdminResources = async (): Promise<Resource[]> => {
-  return getResources();
+  try {
+    const resourcesCol = collection(db, 'resources');
+    const resourceSnapshot = await getDocs(resourcesCol);
+    const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
+    return resourceList;
+  } catch(error) {
+    console.error("Failed to get admin resources:", error)
+    return []; // Return empty array on failure
+  }
 };
 
 export const getResourcesByUploader = async (uploaderId: string) => {
@@ -268,3 +280,4 @@ export const getFilters = () => ({
   semesters: defaultFilters.semesters,
   subjects: defaultFilters.subjects,
 });
+
