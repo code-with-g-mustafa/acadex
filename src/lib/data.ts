@@ -43,15 +43,22 @@ const defaultFilters = {
     }
 };
 
-// Helper function to ensure a metadata document exists, creating it if necessary.
-// This should only be called from an authenticated context.
 async function ensureMetadataDoc(docRef: any, initialData: any) {
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) {
-        await setDoc(docRef, initialData);
-        return initialData;
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) {
+    try {
+      await setDoc(docRef, initialData);
+      return initialData;
+    } catch (e) {
+      // Potentially a race condition where another user created the doc.
+      const freshSnap = await getDoc(docRef);
+      if (freshSnap.exists()) {
+        return freshSnap.data();
+      }
+      throw e; // Re-throw if it still doesn't exist.
     }
-    return docSnap.data();
+  }
+  return docSnap.data();
 }
 
 
@@ -67,29 +74,22 @@ export async function getDynamicFilters() {
             getDoc(subjectsRef),
         ]);
 
-        // Safely access data, falling back to defaults if document doesn't exist or list is empty.
-        const universitiesList = universitiesSnap.exists() && universitiesSnap.data()?.list?.length > 0
-            ? universitiesSnap.data().list
-            : defaultFilters.universities;
+        const universitiesData = universitiesSnap.data();
+        const departmentsData = departmentsSnap.data();
+        const subjectsData = subjectsSnap.data();
 
-        const departmentsList = departmentsSnap.exists() && departmentsSnap.data()?.list?.length > 0
-            ? departmentsSnap.data().list
-            : defaultFilters.departments;
-
-        const subjectsData = subjectsSnap.exists()
-            ? subjectsSnap.data()
-            : defaultFilters.subjects;
-
+        const universitiesList = universitiesData?.list?.length > 0 ? universitiesData.list : defaultFilters.universities;
+        const departmentsList = departmentsData?.list?.length > 0 ? departmentsData.list : defaultFilters.departments;
+        const subjectsMap = subjectsData ? subjectsData : defaultFilters.subjects;
 
         return {
             universities: universitiesList,
             departments: departmentsList,
-            subjects: subjectsData,
+            subjects: subjectsMap,
             semesters: defaultFilters.semesters,
         };
     } catch (error) {
         console.error("Error fetching dynamic filters, returning defaults:", error);
-        // Fallback to default filters on any error (e.g., permissions)
         return defaultFilters;
     }
 }
@@ -105,11 +105,10 @@ export async function addDepartment(name: string) {
     const docRef = doc(db, 'metadata', 'departments');
     await ensureMetadataDoc(docRef, { list: defaultFilters.departments });
     await updateDoc(docRef, { list: arrayUnion(name) });
-    // Also initialize an empty subject list for the new department
     const subjectsRef = doc(db, 'metadata', 'subjects');
-    await ensureMetadataDoc(subjectsRef, defaultFilters.subjects);
-    if (! (await getDoc(subjectsRef)).data()?.[name]) {
-      await updateDoc(subjectsRef, { [name]: [] });
+    const subjectsDoc = await getDoc(subjectsRef);
+    if (!subjectsDoc.data()?.[name]) {
+        await updateDoc(subjectsRef, { [name]: [] });
     }
 }
 
@@ -143,13 +142,10 @@ export const addResource = async (
     try {
         const fileToUpload = data.file;
 
-        // 1. Upload file to Firebase Storage
         const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
 
-        // 2. Create document in Firestore
-        // The 'content' field is intentionally left empty. It will be populated after admin approval.
         const docData = {
             title: data.title,
             description: data.description,
@@ -164,7 +160,7 @@ export const addResource = async (
             status: 'pending',
             summary: 'Summary will be generated upon approval.',
             shortNotes: 'Notes will be generated upon approval.',
-            content: '', // Intentionally blank on initial upload
+            content: '',
             tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
             createdAt: new Date(),
         };
@@ -178,8 +174,7 @@ export const addResource = async (
         if (e.code === 'permission-denied') {
             throw new Error("You do not have permission to upload. Please check your account and Firestore/Storage rules.");
         }
-        // Re-throw a more generic but informative error
-        throw new Error("Could not add resource: " + e.message);
+        throw new Error(`Could not add resource: ${e.message}`);
     }
 };
 
@@ -192,21 +187,13 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
       if (!resourceDoc.exists()) throw new Error("Resource not found.");
       
       const resourceData = resourceDoc.data();
-
-      // Placeholder for fetching the file from storage to extract text.
-      // In a real app, you might need a server-side function to do this securely and efficiently.
-      // For this example, we will simulate this process.
-      // We assume we can get the file content, maybe from a function that takes a URL.
-      // As a placeholder, we'll use a mock text based on fileName.
       const simulatedFileContent = `[Extracted text from ${resourceData.fileName}] - This content is now available for AI processing.`;
 
-      // Update status to approved immediately
       await updateDoc(resourceRef, { 
         status: 'approved',
-        content: simulatedFileContent, // Save extracted text
+        content: simulatedFileContent,
       });
 
-      // Generate AI summary and notes in the background (no await)
       getAISummary(simulatedFileContent).then(aiData => {
         updateDoc(resourceRef, { 
           summary: aiData.summary,
@@ -221,7 +208,6 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
       });
       
     } else {
-      // For rejection, just update the status
       await updateDoc(resourceRef, { status });
     }
   } catch (error) {
@@ -243,7 +229,6 @@ export const getResources = async (): Promise<Resource[]> => {
 };
 
 export const getAdminResources = async (): Promise<Resource[]> => {
-  // This function is now the same as getResources, client-side logic will handle sorting.
   return getResources();
 };
 
@@ -283,5 +268,3 @@ export const getFilters = () => ({
   semesters: defaultFilters.semesters,
   subjects: defaultFilters.subjects,
 });
-
-    
