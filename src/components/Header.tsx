@@ -11,7 +11,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { UserInfoDialog } from "./UserInfoDialog";
-import { getDynamicFilters, addUniversity, addDepartment, UserData } from "@/lib/data";
+import { getDynamicFilters, UserData } from "@/lib/data";
 import { ThemeToggle } from "./ThemeToggle";
 
 
@@ -60,12 +60,23 @@ export function Header() {
      if (user) {
         const userRef = doc(db, "users", user.uid);
         
-        // Add new university/department to the dynamic lists if they are new
+        // This logic is now handled in RegisterForm and UserInfoDialog
+        // For Google Sign-in, we need to add the new uni/dept if they exist
         if (data.isNewUniversity) {
-            await addUniversity(data.university);
+            const uniRef = doc(db, 'metadata', 'universities');
+            const uniDoc = await getDoc(uniRef);
+            if(uniDoc.exists()) {
+                const existingList = uniDoc.data().list || [];
+                await setDoc(uniRef, { list: [...existingList, data.university] }, { merge: true });
+            }
         }
         if (data.isNewDepartment) {
-            await addDepartment(data.department);
+            const deptRef = doc(db, 'metadata', 'departments');
+            const deptDoc = await getDoc(deptRef);
+            if(deptDoc.exists()) {
+                const existingList = deptDoc.data().list || [];
+                await setDoc(deptRef, { list: [...existingList, data.department] }, { merge: true });
+            }
         }
 
         const userData: Partial<UserData> = {

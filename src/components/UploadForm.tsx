@@ -27,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UploadCloud, Loader2, FileCheck } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { addResource, addUniversity, addDepartment, addSubject } from '@/lib/data';
+import { addResource } from '@/lib/data';
 import { useRouter } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/lib/firebase';
@@ -37,26 +37,12 @@ const formSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   university: z.string().min(1, 'Please select a university.'),
-  otherUniversity: z.string().optional(),
   department: z.string().min(1, 'Please select a department.'),
-  otherDepartment: z.string().optional(),
   semester: z.string().min(1, 'Please select a semester.'),
   subject: z.string().min(1, 'Please select a subject.'),
-  otherSubject: z.string().optional(),
   fileType: z.enum(['Note', 'Past Paper', 'Lab Manual']),
   file: z.any().refine((files) => files instanceof FileList && files?.length === 1, 'File is required.'),
-}).refine(data => {
-    if (data.university === 'Other') return !!data.otherUniversity && data.otherUniversity.length > 0;
-    return true;
-}, { message: "Please specify the university name", path: ["otherUniversity"] })
-.refine(data => {
-    if (data.department === 'Other') return !!data.otherDepartment && data.otherDepartment.length > 0;
-    return true;
-}, { message: "Please specify the department name", path: ["otherDepartment"] })
-.refine(data => {
-    if (data.subject === 'Other') return !!data.otherSubject && data.otherSubject.length > 0;
-    return true;
-}, { message: "Please specify the subject name", path: ["otherSubject"] });
+});
 
 type UploadFormProps = {
   filters: {
@@ -79,20 +65,15 @@ export function UploadForm({ filters }: UploadFormProps) {
       title: '',
       description: '',
       university: '',
-      otherUniversity: '',
       department: '',
-      otherDepartment: '',
       semester: '',
       subject: '',
-      otherSubject: '',
       fileType: 'Note',
       file: undefined,
     },
   });
 
-  const university = form.watch('university');
   const department = form.watch('department');
-  const subject = form.watch('subject');
   
   const [subjectList, setSubjectList] = useState<string[]>([]);
   
@@ -102,7 +83,7 @@ export function UploadForm({ filters }: UploadFormProps) {
     } else {
       setSubjectList([]);
     }
-    form.setValue('subject', '');
+    form.resetField('subject');
   }, [department, filters.subjects, form]);
 
   const fileList = form.watch('file');
@@ -124,23 +105,8 @@ export function UploadForm({ filters }: UploadFormProps) {
     try {
         const fileToUpload = values.file[0] as File;
         
-        const isNewUniversity = values.university === 'Other';
-        const isNewDepartment = values.department === 'Other';
-        const isNewSubject = values.subject === 'Other';
-
-        const universityToSave = isNewUniversity ? values.otherUniversity! : values.university;
-        const departmentToSave = isNewDepartment ? values.otherDepartment! : values.department;
-        const subjectToSave = isNewSubject ? values.otherSubject! : values.subject;
-
-        if (isNewUniversity) await addUniversity(universityToSave);
-        if (isNewDepartment) await addDepartment(departmentToSave);
-        if (isNewSubject) await addSubject(departmentToSave, subjectToSave);
-
         await addResource({
             ...values,
-            university: universityToSave,
-            department: departmentToSave,
-            subject: subjectToSave,
             file: fileToUpload,
             uploaderId: user.uid,
         });
@@ -173,83 +139,49 @@ export function UploadForm({ filters }: UploadFormProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
-                control={form.control}
-                name="university"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>University</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a university" />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {filters.universities.map((uni) => (
-                            <SelectItem key={uni} value={uni}>{uni}</SelectItem>
-                        ))}
-                        <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                {university === 'Other' && (
-                  <FormField
-                    control={form.control}
-                    name="otherUniversity"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="university"
+                  render={({ field }) => (
                       <FormItem>
-                        <FormLabel>University Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter university name" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                      <FormLabel>University</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select a university" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          {filters.universities.map((uni) => (
+                              <SelectItem key={uni} value={uni}>{uni}</SelectItem>
+                          ))}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
                       </FormItem>
-                    )}
-                  />
-                )}
+                  )}
+                />
                 <FormField
-                control={form.control}
-                name="department"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={(value) => {
-                        field.onChange(value);
-                    }} defaultValue={field.value}>
-                        <FormControl>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a department" />
-                        </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        {filters.departments.map((dep) => (
-                            <SelectItem key={dep} value={dep}>{dep}</SelectItem>
-                        ))}
-                        <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                 {department === 'Other' && (
-                  <FormField
-                    control={form.control}
-                    name="otherDepartment"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Department Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter department name" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                      <FormLabel>Department</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select a department" />
+                          </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                          {filters.departments.map((dep) => (
+                              <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                          ))}
+                          </SelectContent>
+                      </Select>
+                      <FormMessage />
                       </FormItem>
-                    )}
-                  />
-                )}
+                  )}
+                />
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -280,7 +212,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department || department === 'Other'}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -290,33 +222,15 @@ export function UploadForm({ filters }: UploadFormProps) {
                           {subjectList.map((sub) => (
                             <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                           ))}
-                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {!department ? "Please select a department first." : department === 'Other' ? "Please save your new department first by submitting." : "Select a subject from the list."}
+                        {!department && "Please select a department first."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-            </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {subject === 'Other' && (
-                  <FormField
-                    control={form.control}
-                    name="otherSubject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter subject name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
             </div>
              <FormField
               control={form.control}
@@ -369,10 +283,10 @@ export function UploadForm({ filters }: UploadFormProps) {
                     </FormItem>
                 )}
             />
-            <FormField
+             <FormField
               control={form.control}
               name="file"
-              render={({ field }) => (
+              render={({ field: { onChange, onBlur, name, ref } }) => (
                 <FormItem>
                   <FormLabel>File</FormLabel>
                   <FormControl>
@@ -389,8 +303,16 @@ export function UploadForm({ filters }: UploadFormProps) {
                                     <div className="flex text-sm text-muted-foreground">
                                         <label htmlFor="file-upload" className="relative font-medium text-primary bg-transparent rounded-md cursor-pointer focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 hover:text-primary/80">
                                             <span>Upload a file</span>
-                                            <Input id="file-upload" type="file" className="sr-only" 
-                                                {...form.register("file")}
+                                             <Input 
+                                                id="file-upload"
+                                                type="file"
+                                                className="sr-only" 
+                                                ref={ref}
+                                                name={name}
+                                                onBlur={onBlur}
+                                                onChange={(e) => {
+                                                  onChange(e.target.files)
+                                                }}
                                                 accept=".pdf,.png,.jpg,.jpeg"
                                             />
                                         </label>

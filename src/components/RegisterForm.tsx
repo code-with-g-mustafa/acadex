@@ -98,6 +98,7 @@ export function RegisterForm({ filters }: RegisterFormProps) {
       }
 
       const userData: Partial<UserData> = {
+        name: user.email?.split('@')[0] || 'Anonymous',
         email: user.email,
         university: universityToSave,
         department: departmentToSave,

@@ -1,4 +1,3 @@
-
 import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
@@ -43,25 +42,6 @@ const defaultFilters = {
     }
 };
 
-async function ensureMetadataDoc(docRef: any, initialData: any) {
-  const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) {
-    try {
-      await setDoc(docRef, initialData);
-      return initialData;
-    } catch (e) {
-      // Potentially a race condition where another user created the doc.
-      const freshSnap = await getDoc(docRef);
-      if (freshSnap.exists()) {
-        return freshSnap.data();
-      }
-      throw e; // Re-throw if it still doesn't exist.
-    }
-  }
-  return docSnap.data();
-}
-
-
 export async function getDynamicFilters() {
     const universitiesRef = doc(db, 'metadata', 'universities');
     const departmentsRef = doc(db, 'metadata', 'departments');
@@ -94,29 +74,14 @@ export async function getDynamicFilters() {
     }
 }
 
-
-export async function addUniversity(name: string) {
-    const docRef = doc(db, 'metadata', 'universities');
-    await ensureMetadataDoc(docRef, { list: defaultFilters.universities });
-    await updateDoc(docRef, { list: arrayUnion(name) });
+export async function addUniversity(university: string) {
+    const uniRef = doc(db, 'metadata', 'universities');
+    await setDoc(uniRef, { list: arrayUnion(university) }, { merge: true });
 }
 
-export async function addDepartment(name: string) {
-    const docRef = doc(db, 'metadata', 'departments');
-    await ensureMetadataDoc(docRef, { list: defaultFilters.departments });
-    await updateDoc(docRef, { list: arrayUnion(name) });
-    const subjectsRef = doc(db, 'metadata', 'subjects');
-    await ensureMetadataDoc(subjectsRef, defaultFilters.subjects);
-    const subjectsDoc = await getDoc(subjectsRef);
-    if (!subjectsDoc.data()?.[name]) {
-        await updateDoc(subjectsRef, { [name]: [] });
-    }
-}
-
-export async function addSubject(department: string, subject: string) {
-    const docRef = doc(db, 'metadata', 'subjects');
-    await ensureMetadataDoc(docRef, defaultFilters.subjects);
-    await updateDoc(docRef, { [`${department}`]: arrayUnion(subject) });
+export async function addDepartment(department: string) {
+    const deptRef = doc(db, 'metadata', 'departments');
+    await setDoc(deptRef, { list: arrayUnion(department) }, { merge: true });
 }
 
 
@@ -284,10 +249,3 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
         return null;
     }
 }
-
-export const getFilters = () => ({
-  universities: defaultFilters.universities,
-  departments: defaultFilters.departments,
-  semesters: defaultFilters.semesters,
-  subjects: defaultFilters.subjects,
-});
