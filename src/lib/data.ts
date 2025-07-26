@@ -143,10 +143,12 @@ export const addResource = async (
     try {
         const fileToUpload = data.file;
 
+        // 1. Upload the file to Firebase Storage
         const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
-
+        
+        // 2. Prepare the document for Firestore
         const docData = {
             title: data.title,
             description: data.description,
@@ -158,14 +160,15 @@ export const addResource = async (
             uploaderId: data.uploaderId,
             fileUrl,
             fileName: fileToUpload.name,
-            status: 'pending',
-            summary: '',
+            status: 'pending', // Always pending on initial upload
+            summary: '', // AI content is generated after approval
             shortNotes: '',
-            content: '',
+            content: '', // Raw content extracted after approval
             tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
             createdAt: new Date(),
         };
         
+        // 3. Add the document to the 'resources' collection
         const docRef = await addDoc(collection(db, 'resources'), docData);
 
         return docRef.id;
@@ -191,7 +194,7 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
       // Simulate text extraction. In a real app, this would be a cloud function.
       const simulatedFileContent = `[Extracted text from ${resourceData.fileName}] - This content is now available for AI processing.`;
 
-      // Immediately update status to 'approved'
+      // Immediately update status to 'approved' and set placeholder text
       await updateDoc(resourceRef, { 
         status: 'approved',
         content: simulatedFileContent,
