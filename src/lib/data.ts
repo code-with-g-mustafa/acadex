@@ -33,10 +33,10 @@ export type UserData = {
 
 const universities = ['University of Technology', 'City College', 'Other'];
 const departments = ['Computer Science', 'Electrical Engineering', 'Other'];
-const semesters = ['1st', '2nd', '3rd', '4th'];
+const semesters = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
 const subjects: { [key: string]: string[] } = {
-  'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Other'],
-  'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Other'],
+  'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Database Systems', 'Operating Systems', 'Other'],
+  'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Electromagnetic Theory', 'Power Systems', 'Other'],
 };
 
 // Helper to extract text from a file. In a real app, this would be more sophisticated.
@@ -113,7 +113,7 @@ export const addResource = async (
 
     } catch (e) {
         console.error("Error adding document: ", e);
-        throw new Error("Could not add resource. You may not have the required permissions.");
+        throw new Error("Could not add resource. Check permissions and data format.");
     }
 };
 

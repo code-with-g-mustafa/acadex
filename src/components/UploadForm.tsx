@@ -102,7 +102,6 @@ export function UploadForm({ filters }: UploadFormProps) {
     } else {
       setSubjectList([]);
     }
-     form.setValue('subject', '');
   }, [department, filters.subjects, form]);
 
   const fileList = form.watch('file');
@@ -123,8 +122,15 @@ export function UploadForm({ filters }: UploadFormProps) {
     
     try {
         const fileToUpload = values.file[0] as File;
+        const universityToSave = values.university === 'Other' ? values.otherUniversity : values.university;
+        const departmentToSave = values.department === 'Other' ? values.otherDepartment : values.department;
+        const subjectToSave = values.subject === 'Other' ? values.otherSubject : values.subject;
+
         await addResource({
             ...values,
+            university: universityToSave!,
+            department: departmentToSave!,
+            subject: subjectToSave!,
             file: fileToUpload,
             uploaderId: user.uid,
         });
@@ -199,7 +205,10 @@ export function UploadForm({ filters }: UploadFormProps) {
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('subject', '');
+                    }} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a department" />
@@ -273,7 +282,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {department ? "Select a subject or 'Other' to add a new one." : "Please select a department first."}
+                        {department ? "Select a subject from the list." : "Please select a department first."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
