@@ -25,14 +25,8 @@ const socialLinks = [
 const navLinks = {
   Platform: [
     { name: "About", href: "/#about" },
-    { name: "Features", href: "/#about" },
     { name: "Dashboard", href: "/dashboard" },
     { name: "Contact", href: "/#contact" },
-  ],
-  Resources: [
-    { name: "Terms of Service", href: "#" },
-    { name: "Privacy Policy", href: "#" },
-    { name: "Help Center", href: "#" },
   ],
 };
 
@@ -60,7 +54,7 @@ export function Footer() {
                     </div>
 
                     {/* Navigation Links */}
-                    <div className="md:col-span-8 lg:col-span-5 grid grid-cols-2 sm:grid-cols-2 gap-8">
+                    <div className="md:col-span-8 lg:col-span-5 grid grid-cols-1 sm:grid-cols-1 gap-8">
                         {Object.entries(navLinks).map(([title, links]) => (
                             <div key={title}>
                                 <h3 className="font-headline font-semibold tracking-wider text-foreground mb-4">{title}</h3>
