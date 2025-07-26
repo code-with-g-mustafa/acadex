@@ -1,41 +1,28 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Rules for user profiles
+    // Rules for the 'users' collection
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId 
-                    && request.resource.data.role == 'Student';
+      allow create: if request.auth.uid == userId;
       allow update: if request.auth.uid == userId;
     }
 
-    // Rules for resources
+    // Rules for the 'resources' collection
     match /resources/{resourceId} {
-      allow read: if resource.data.status == 'approved' 
-                  || (request.auth != null && resource.data.uploaderId == request.auth.uid)
-                  || (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
-                  
-      allow create: if request.auth != null 
-                    && request.auth.uid == request.resource.data.uploaderId
+      allow read: if resource.data.status == 'approved';
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Student', 'Admin']
+                    && request.resource.data.uploaderId == request.auth.uid
                     && request.resource.data.status == 'pending';
-
-      allow update: if request.auth != null 
-                    && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
-                    
-      allow delete: if false; 
+      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
     }
-
-    // Rules for dynamic metadata (universities, departments, subjects)
+    
+    // Rules for the 'metadata' collection
     match /metadata/{docId} {
-        // Allow reads for any authenticated user to populate dropdowns
         allow read: if request.auth != null;
-
-        // Allow creating initial metadata documents
-        allow create: if request.auth != null;
-        
-        // Allow adding new universities or departments (which are simple list appends)
         allow update: if request.auth != null;
     }
   }
