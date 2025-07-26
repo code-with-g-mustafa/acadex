@@ -159,8 +159,8 @@ export const addResource = async (
             fileUrl,
             fileName: fileToUpload.name,
             status: 'pending',
-            summary: 'Summary will be generated upon approval.',
-            shortNotes: 'Notes will be generated upon approval.',
+            summary: '',
+            shortNotes: '',
             content: '',
             tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
             createdAt: new Date(),
@@ -188,27 +188,35 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
       if (!resourceDoc.exists()) throw new Error("Resource not found.");
       
       const resourceData = resourceDoc.data();
+      // Simulate text extraction. In a real app, this would be a cloud function.
       const simulatedFileContent = `[Extracted text from ${resourceData.fileName}] - This content is now available for AI processing.`;
 
+      // Immediately update status to 'approved'
       await updateDoc(resourceRef, { 
         status: 'approved',
         content: simulatedFileContent,
+        summary: "Generating summary...",
+        shortNotes: "Generating notes..."
       });
 
+      // Trigger AI summary generation asynchronously.
       getAISummary(simulatedFileContent).then(aiData => {
+        // Update the document again with the AI data once it's ready.
         updateDoc(resourceRef, { 
           summary: aiData.summary,
           shortNotes: aiData.shortNotes
         });
       }).catch(error => {
         console.error("Failed to generate AI summary:", error);
+         // If AI fails, update the fields to reflect that.
          updateDoc(resourceRef, { 
-          summary: "AI summary generation failed.",
+          summary: "AI summary generation failed. This might be a non-text file.",
           shortNotes: "AI note generation failed."
         });
       });
       
     } else {
+      // For rejection, just update the status.
       await updateDoc(resourceRef, { status });
     }
   } catch (error) {
@@ -280,4 +288,3 @@ export const getFilters = () => ({
   semesters: defaultFilters.semesters,
   subjects: defaultFilters.subjects,
 });
-

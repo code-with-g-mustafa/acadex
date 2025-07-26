@@ -90,20 +90,23 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const handleApprove = async (id: string) => {
     setIsProcessing(id);
     try {
-      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved' } : r));
       await updateResourceStatus(id, 'approved');
-      toast({ title: "Resource Approved", description: "The resource is now public. AI summary is being generated." });
+      toast({ title: "Resource Approved", description: "The resource is now public. AI summary will be generated in the background." });
+      
+      // Optimistically update the UI
+      setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'approved', summary: 'Generating summary...' } : r));
 
+      // Fetch fresh data after a short delay to allow backend processing
       setTimeout(() => {
         if (user) {
           getUserData(user.uid).then(userData => {
             fetchResources(userData?.role === 'Admin');
           });
         }
-      }, 5000);
+      }, 5000); // 5 seconds delay
 
     } catch(error: any) {
-       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'pending' } : r));
+       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'pending' } : r)); // Revert optimistic update on failure
        toast({ title: "Approval Failed", description: "Could not approve the resource. Please try again.", variant: "destructive" });
        console.error("Approval error:", error);
     } finally {
@@ -118,7 +121,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
       setResources(prev => prev.map(r => r.id === id ? { ...r, status: 'rejected' } : r));
       toast({ title: "Resource Rejected", variant: "destructive" });
     } catch (error: any) {
-       toast({ title: "Rejection Failed", description: "You may not have the required permissions.", variant: "destructive" });
+       toast({ title: "Rejection Failed", description: "Could not reject the resource. Please try again.", variant: "destructive" });
     } finally {
         setIsProcessing(null);
     }
