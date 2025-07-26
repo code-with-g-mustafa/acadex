@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -93,7 +93,18 @@ export function UploadForm({ filters }: UploadFormProps) {
   const university = form.watch('university');
   const department = form.watch('department');
   const subject = form.watch('subject');
-  const subjectList = filters.subjects[department] || [];
+  
+  const [subjectList, setSubjectList] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (department && filters.subjects[department]) {
+      setSubjectList(filters.subjects[department]);
+    } else {
+      setSubjectList([]);
+    }
+     form.setValue('subject', '');
+  }, [department, filters.subjects, form]);
+
   const fileList = form.watch('file');
   const fileName = fileList?.[0]?.name;
 
@@ -249,7 +260,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!department}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!department || department === 'Other'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />

@@ -34,7 +34,7 @@ export type UserData = {
 const universities = ['University of Technology', 'City College', 'Other'];
 const departments = ['Computer Science', 'Electrical Engineering', 'Other'];
 const semesters = ['1st', '2nd', '3rd', '4th'];
-const subjects = {
+const subjects: { [key: string]: string[] } = {
   'Computer Science': ['Introduction to Programming', 'Data Structures', 'Algorithms', 'Other'],
   'Electrical Engineering': ['Circuit Theory', 'Digital Logic Design', 'Signals and Systems', 'Other'],
 };
