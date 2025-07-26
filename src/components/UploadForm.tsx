@@ -102,7 +102,8 @@ export function UploadForm({ filters }: UploadFormProps) {
     } else {
       setSubjectList([]);
     }
-  }, [department, filters.subjects]);
+    form.setValue('subject', '');
+  }, [department, filters.subjects, form]);
 
   const fileList = form.watch('file');
   const fileName = fileList?.[0]?.name;
@@ -217,7 +218,6 @@ export function UploadForm({ filters }: UploadFormProps) {
                     <FormLabel>Department</FormLabel>
                     <Select onValueChange={(value) => {
                         field.onChange(value);
-                        form.setValue('subject', '');
                     }} defaultValue={field.value}>
                         <FormControl>
                         <SelectTrigger>
@@ -280,7 +280,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department}>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={!department || department === 'Other'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -294,7 +294,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        {!department ? "Please select a department first." : "Select a subject from the list."}
+                        {!department ? "Please select a department first." : department === 'Other' ? "Please save your new department first by submitting." : "Select a subject from the list."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -422,5 +422,3 @@ export function UploadForm({ filters }: UploadFormProps) {
     </Card>
   );
 }
-
-

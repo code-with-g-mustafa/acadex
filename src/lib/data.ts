@@ -54,6 +54,7 @@ async function ensureMetadataDoc(docRef: any, initialData: any) {
     return docSnap.data();
 }
 
+
 export async function getDynamicFilters() {
     const universitiesRef = doc(db, 'metadata', 'universities');
     const departmentsRef = doc(db, 'metadata', 'departments');
@@ -66,25 +67,30 @@ export async function getDynamicFilters() {
             getDoc(subjectsRef),
         ]);
 
-        const universitiesData = universitiesSnap.exists() ? universitiesSnap.data() : { list: defaultFilters.universities };
-        const departmentsData = departmentsSnap.exists() ? departmentsSnap.data() : { list: defaultFilters.departments };
-        const subjectsData = subjectsSnap.exists() ? subjectsSnap.data() : defaultFilters.subjects;
+        // Safely access data, falling back to defaults if document doesn't exist or list is empty.
+        const universitiesList = universitiesSnap.exists() && universitiesSnap.data()?.list?.length > 0
+            ? universitiesSnap.data().list
+            : defaultFilters.universities;
+
+        const departmentsList = departmentsSnap.exists() && departmentsSnap.data()?.list?.length > 0
+            ? departmentsSnap.data().list
+            : defaultFilters.departments;
+
+        const subjectsData = subjectsSnap.exists()
+            ? subjectsSnap.data()
+            : defaultFilters.subjects;
+
 
         return {
-            universities: universitiesData?.list || defaultFilters.universities,
-            departments: departmentsData?.list || defaultFilters.departments,
-            subjects: subjectsData || defaultFilters.subjects,
+            universities: universitiesList,
+            departments: departmentsList,
+            subjects: subjectsData,
             semesters: defaultFilters.semesters,
         };
     } catch (error) {
         console.error("Error fetching dynamic filters, returning defaults:", error);
         // Fallback to default filters on any error (e.g., permissions)
-        return {
-            universities: defaultFilters.universities,
-            departments: defaultFilters.departments,
-            subjects: defaultFilters.subjects,
-            semesters: defaultFilters.semesters,
-        };
+        return defaultFilters;
     }
 }
 
@@ -130,6 +136,9 @@ export const addResource = async (
     if (!data.file) {
         throw new Error("File is required.");
     }
+    if (!data.uploaderId) {
+        throw new Error("User is not authenticated.");
+    }
 
     try {
         const fileToUpload = data.file;
@@ -138,14 +147,10 @@ export const addResource = async (
         const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
-        
-        // This is a simulated text extraction. In a real app, this would be more complex.
-        const content = fileToUpload.type.startsWith('image/')
-          ? `[Image content for ${fileToUpload.name}]`
-          : `[Text content for ${fileToUpload.name}]`;
 
         // 2. Create document in Firestore
-        const docRef = await addDoc(collection(db, 'resources'), {
+        // The 'content' field is intentionally left empty. It will be populated after admin approval.
+        const docData = {
             title: data.title,
             description: data.description,
             university: data.university,
@@ -159,9 +164,12 @@ export const addResource = async (
             status: 'pending',
             summary: 'Summary will be generated upon approval.',
             shortNotes: 'Notes will be generated upon approval.',
-            content: `Content for ${fileToUpload.name} will be extracted upon approval.`,
+            content: '', // Intentionally blank on initial upload
             tags: data.title.toLowerCase().split(' ').filter(Boolean).slice(0, 3),
-        });
+            createdAt: new Date(),
+        };
+        
+        const docRef = await addDoc(collection(db, 'resources'), docData);
 
         return docRef.id;
 
@@ -170,6 +178,7 @@ export const addResource = async (
         if (e.code === 'permission-denied') {
             throw new Error("You do not have permission to upload. Please check your account and Firestore/Storage rules.");
         }
+        // Re-throw a more generic but informative error
         throw new Error("Could not add resource: " + e.message);
     }
 };
