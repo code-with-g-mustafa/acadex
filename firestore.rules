@@ -3,35 +3,40 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper function to check user role
     function isUserRole(role) {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
+    // Rules for the 'users' collection
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read: if request.auth.uid == userId || isUserRole("Admin");
+      allow write: if request.auth.uid == userId || isUserRole("Admin");
     }
 
+    // Rules for the 'metadata' collection (for filters)
     match /metadata/{docId} {
-      allow read;
-      allow create, update: if request.auth != null;
+      allow read; // Allow anyone to read filter data
+      allow write: if request.auth != null; // Allow any authenticated user to add new filters
     }
 
+    // Rules for the 'resources' collection
     match /resources/{resourceId} {
-      // Any user can get a resource if it's approved.
+      // ANYONE can GET a resource if its status is 'approved'
       allow get: if resource.data.status == 'approved';
 
-      // Admins can see all documents.
-      // Anyone can query for approved documents.
-      allow list: if isUserRole("Admin") || request.query.get("status") == "approved";
-      
-      // Admins and Students can create resources.
-      allow create: if isUserRole("Admin") || isUserRole("Student");
+      // ANYONE can LIST resources if they only query for 'approved' ones
+      // This allows the public dashboard to work.
+      allow list: if request.query.get("status") == "approved" || isUserRole("Admin");
 
-      // Only Admins can update a resource (e.g., to approve or reject it).
+      // ANY authenticated user can CREATE a resource
+      allow create: if request.auth != null;
+
+      // ONLY an ADMIN can UPDATE a resource (e.g., to approve/reject it)
       allow update: if isUserRole("Admin");
-
-      // Only Admins or the original uploader can delete a resource.
-      allow delete: if isUserRole("Admin") || request.auth.uid == resource.data.uploaderId;
+      
+      // Default deny all other operations
+      allow delete: if false;
     }
   }
 }
