@@ -1,29 +1,42 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Rules for the 'users' collection
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
+    // Helper function to check user role from the user's document
+    function isRole(role) {
+      // Ensure the user is authenticated before checking their role.
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
-    // Rules for the 'resources' collection
-    match /resources/{resourceId} {
-      allow read: if resource.data.status == 'approved';
-      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Student', 'Admin']
-                    && request.resource.data.uploaderId == request.auth.uid
-                    && request.resource.data.status == 'pending';
-      allow update: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    // Rules for user profiles
+    match /users/{userId} {
+      // Users can read any profile, but can only write to their own.
+      allow read: if request.auth != null;
+      allow create, update: if request.auth.uid == userId;
     }
-    
-    // Rules for the 'metadata' collection
+
+    // Rules for resources
+    match /resources/{resourceId} {
+      // Allow read access if the resource is approved, or if the user is an Admin,
+      // or if the user is the one who uploaded it.
+      allow read: if resource.data.status == 'approved' || (request.auth != null && (isRole('Admin') || resource.data.uploaderId == request.auth.uid));
+
+      // Allow creation if the user is an Admin or Student, the uploaderId matches their UID,
+      // and the initial status is 'pending'.
+      allow create: if request.auth != null && (isRole('Admin') || isRole('Student')) && request.resource.data.uploaderId == request.auth.uid && request.resource.data.status == 'pending';
+
+      // Only Admins can update (approve/reject) or delete resources.
+      allow update, delete: if request.auth != null && isRole('Admin');
+    }
+
+    // Rules for metadata (dynamic filters)
     match /metadata/{docId} {
-        allow read: if request.auth != null;
-        allow update: if request.auth != null;
+        // This data is non-sensitive and needed for UI components (dropdowns) to render,
+        // even for non-authenticated users. Allow public read access.
+        allow read;
+        // Writing to metadata (adding new universities, etc.) requires authentication.
+        allow write: if request.auth != null;
     }
   }
 }
