@@ -260,7 +260,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Subject</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!department || department === 'Other'}>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!department}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a subject" />
@@ -273,7 +273,7 @@ export function UploadForm({ filters }: UploadFormProps) {
                         </SelectContent>
                       </Select>
                        <FormDescription>
-                        Please select a department first.
+                        {department ? "Select a subject or 'Other' to add a new one." : "Please select a department first."}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
