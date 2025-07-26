@@ -2,40 +2,45 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper functions
+    function isUserAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUserRole(role) {
+      // This get() call requires that the user has permission to read their own user document.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
     
-    // Users can only read their own data and can't be updated by others.
+    function isOwner(resourceId) {
+      return request.auth.uid == get(/databases/$(database)/documents/resources/$(resourceId)).data.uploaderId;
+    }
+
+    // Rules for user profiles
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      // Allow users to get their own document, required for isUserRole() to work.
+      allow get: if isUserAuthenticated() && request.auth.uid == userId;
+      // Allow any authenticated user to read other user profiles (e.g., for names)
+      allow read: if isUserAuthenticated();
+      allow create: if isUserAuthenticated();
+      allow update: if isUserAuthenticated() && request.auth.uid == userId;
     }
 
-    // Resources can be created by any authenticated user.
-    // They can be updated/deleted only by the uploader or an Admin.
-    // Approved resources can be read by anyone.
+    // Rules for resources
     match /resources/{resourceId} {
-      allow create: if request.auth != null && 
-                      (request.resource.data.uploaderId == request.auth.uid) &&
-                      (request.resource.data.status == 'pending');
-                      
-      allow get: if resource.data.status == 'approved';
-      
-      allow list: if request.query.limit <= 100;
-
-      allow update: if request.auth != null && 
-                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
-                        request.auth.uid == resource.data.uploaderId));
-                        
-      allow delete: if request.auth != null && 
-                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
+      allow get: if resource.data.status == 'approved'; // Public read for approved resources
+      allow list: if true; // Public can list all resources (client-side filters for approved)
+      allow create: if isUserAuthenticated() && (isUserRole('Student') || isUserRole('Admin'))
+                    && request.resource.data.uploaderId == request.auth.uid;
+      allow update: if isUserAuthenticated() && (isOwner(resourceId) || isUserRole('Admin'));
+      allow delete: if isUserAuthenticated() && (isOwner(resourceId) || isUserRole('Admin'));
     }
-
-    // Metadata like universities and departments can be read by anyone
-    // but can only be updated by authenticated users (e.g., adding a new entry).
+    
+    // Rules for dynamic filter data
     match /metadata/{docId} {
-        allow read;
-        allow update: if request.auth != null;
+       allow read: if true;
+       allow create, update: if isUserAuthenticated();
     }
   }
 }
