@@ -2,35 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Rules for user data
+
+    // Rules for user profiles
     match /users/{userId} {
-      // Users can read/update their own profile. Anyone can create a user doc (on signup).
-      allow read, update: if request.auth.uid == userId;
-      allow create: if request.auth.uid != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == userId 
+                    && request.resource.data.role == 'Student';
+      allow update: if request.auth.uid == userId;
     }
 
-    // Rules for academic resources
+    // Rules for resources
     match /resources/{resourceId} {
-      // Anyone can read approved resources. Logged-in users can read their own pending/rejected resources.
       allow read: if resource.data.status == 'approved' 
-                  || (request.auth.uid != null && resource.data.uploaderId == request.auth.uid);
-      
-      // Logged-in users can create resources if the data is valid.
-      allow create: if request.auth.uid != null
-                    && request.resource.data.uploaderId == request.auth.uid
+                  || (request.auth != null && resource.data.uploaderId == request.auth.uid)
+                  || (request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
+                  
+      allow create: if request.auth != null 
+                    && request.auth.uid == request.resource.data.uploaderId
                     && request.resource.data.status == 'pending';
 
-      // Only Admins can update the status of a resource.
-      allow update: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      allow update: if request.auth != null 
+                    && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
+                    
+      allow delete: if false; 
     }
-    
+
     // Rules for dynamic metadata (universities, departments, subjects)
     match /metadata/{docId} {
-        // Any authenticated user can read the lists.
-        allow read: if request.auth.uid != null;
-        // Any authenticated user can add to the lists (e.g., when adding an "Other" university).
-        allow write: if request.auth.uid != null;
+        // Allow reads for any authenticated user to populate dropdowns
+        allow read: if request.auth != null;
+
+        // Allow creating initial metadata documents
+        allow create: if request.auth != null;
+        
+        // Allow adding new universities or departments (which are simple list appends)
+        allow update: if request.auth != null;
     }
   }
 }
