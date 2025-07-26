@@ -1,5 +1,5 @@
 
-import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc, setDoc, FieldValue, arrayUnion } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, getDoc, query, where, updateDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { getAISummary } from '@/app/actions';
@@ -61,14 +61,14 @@ export async function getDynamicFilters() {
         getDoc(subjectsRef),
     ]);
 
-    const universities = universitiesSnap.exists() ? universitiesSnap.data().list : await initializeMetadataDoc(universitiesRef, { list: defaultFilters.universities });
-    const departments = departmentsSnap.exists() ? departmentsSnap.data().list : await initializeMetadataDoc(departmentsRef, { list: defaultFilters.departments });
-    const subjects = subjectsSnap.exists() ? subjectsSnap.data() : await initializeMetadataDoc(subjectsRef, defaultFilters.subjects);
+    const universitiesData = universitiesSnap.exists() ? universitiesSnap.data() : await initializeMetadataDoc(universitiesRef, { list: defaultFilters.universities });
+    const departmentsData = departmentsSnap.exists() ? departmentsSnap.data() : await initializeMetadataDoc(departmentsRef, { list: defaultFilters.departments });
+    const subjectsData = subjectsSnap.exists() ? subjectsSnap.data() : await initializeMetadataDoc(subjectsRef, defaultFilters.subjects);
 
     return {
-        universities: universities.list || universities,
-        departments: departments.list || departments,
-        subjects: subjects,
+        universities: universitiesData?.list || defaultFilters.universities,
+        departments: departmentsData?.list || defaultFilters.departments,
+        subjects: subjectsData || defaultFilters.subjects,
         semesters: defaultFilters.semesters,
     };
 }
@@ -89,7 +89,7 @@ export async function addDepartment(name: string) {
 
 export async function addSubject(department: string, subject: string) {
     const docRef = doc(db, 'metadata', 'subjects');
-    await updateDoc(docRef, { [department]: arrayUnion(subject) });
+    await updateDoc(docRef, { [`${department}`]: arrayUnion(subject) });
 }
 
 

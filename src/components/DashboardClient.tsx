@@ -50,7 +50,7 @@ export function DashboardClient({ initialResources, filters }: DashboardClientPr
   const fetchResources = useCallback(async (userIsAdmin: boolean) => {
     setIsLoadingData(true);
     try {
-      const fetchedResources = await getResources();
+      const fetchedResources = userIsAdmin ? await getAdminResources() : await getResources();
       setResources(fetchedResources);
     } catch (error) {
       console.error("Failed to fetch resources:", error);
