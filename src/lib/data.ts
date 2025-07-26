@@ -43,11 +43,15 @@ const defaultFilters = {
     }
 };
 
-// Functions to manage dynamic filter data in Firestore
-
-async function initializeMetadataDoc(docRef: any, initialData: any) {
-    await setDoc(docRef, initialData);
-    return initialData;
+// Helper function to ensure a metadata document exists, creating it if necessary.
+// This should only be called from an authenticated context.
+async function ensureMetadataDoc(docRef: any, initialData: any) {
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+        await setDoc(docRef, initialData);
+        return initialData;
+    }
+    return docSnap.data();
 }
 
 export async function getDynamicFilters() {
@@ -55,40 +59,57 @@ export async function getDynamicFilters() {
     const departmentsRef = doc(db, 'metadata', 'departments');
     const subjectsRef = doc(db, 'metadata', 'subjects');
 
-    const [universitiesSnap, departmentsSnap, subjectsSnap] = await Promise.all([
-        getDoc(universitiesRef),
-        getDoc(departmentsRef),
-        getDoc(subjectsRef),
-    ]);
+    try {
+        const [universitiesSnap, departmentsSnap, subjectsSnap] = await Promise.all([
+            getDoc(universitiesRef),
+            getDoc(departmentsRef),
+            getDoc(subjectsRef),
+        ]);
 
-    const universitiesData = universitiesSnap.exists() ? universitiesSnap.data() : await initializeMetadataDoc(universitiesRef, { list: defaultFilters.universities });
-    const departmentsData = departmentsSnap.exists() ? departmentsSnap.data() : await initializeMetadataDoc(departmentsRef, { list: defaultFilters.departments });
-    const subjectsData = subjectsSnap.exists() ? subjectsSnap.data() : await initializeMetadataDoc(subjectsRef, defaultFilters.subjects);
+        const universitiesData = universitiesSnap.exists() ? universitiesSnap.data() : { list: defaultFilters.universities };
+        const departmentsData = departmentsSnap.exists() ? departmentsSnap.data() : { list: defaultFilters.departments };
+        const subjectsData = subjectsSnap.exists() ? subjectsSnap.data() : defaultFilters.subjects;
 
-    return {
-        universities: universitiesData?.list || defaultFilters.universities,
-        departments: departmentsData?.list || defaultFilters.departments,
-        subjects: subjectsData || defaultFilters.subjects,
-        semesters: defaultFilters.semesters,
-    };
+        return {
+            universities: universitiesData?.list || defaultFilters.universities,
+            departments: departmentsData?.list || defaultFilters.departments,
+            subjects: subjectsData || defaultFilters.subjects,
+            semesters: defaultFilters.semesters,
+        };
+    } catch (error) {
+        console.error("Error fetching dynamic filters, returning defaults:", error);
+        // Fallback to default filters on any error (e.g., permissions)
+        return {
+            universities: defaultFilters.universities,
+            departments: defaultFilters.departments,
+            subjects: defaultFilters.subjects,
+            semesters: defaultFilters.semesters,
+        };
+    }
 }
 
 
 export async function addUniversity(name: string) {
     const docRef = doc(db, 'metadata', 'universities');
+    await ensureMetadataDoc(docRef, { list: defaultFilters.universities });
     await updateDoc(docRef, { list: arrayUnion(name) });
 }
 
 export async function addDepartment(name: string) {
     const docRef = doc(db, 'metadata', 'departments');
+    await ensureMetadataDoc(docRef, { list: defaultFilters.departments });
     await updateDoc(docRef, { list: arrayUnion(name) });
     // Also initialize an empty subject list for the new department
     const subjectsRef = doc(db, 'metadata', 'subjects');
-    await updateDoc(subjectsRef, { [name]: [] });
+    await ensureMetadataDoc(subjectsRef, defaultFilters.subjects);
+    if (! (await getDoc(subjectsRef)).data()?.[name]) {
+      await updateDoc(subjectsRef, { [name]: [] });
+    }
 }
 
 export async function addSubject(department: string, subject: string) {
     const docRef = doc(db, 'metadata', 'subjects');
+    await ensureMetadataDoc(docRef, defaultFilters.subjects);
     await updateDoc(docRef, { [`${department}`]: arrayUnion(subject) });
 }
 
@@ -117,6 +138,11 @@ export const addResource = async (
         const fileRef = ref(storage, `resources/${data.uploaderId}/${Date.now()}-${fileToUpload.name}`);
         const snapshot = await uploadBytes(fileRef, fileToUpload);
         const fileUrl = await getDownloadURL(snapshot.ref);
+        
+        // This is a simulated text extraction. In a real app, this would be more complex.
+        const content = fileToUpload.type.startsWith('image/')
+          ? `[Image content for ${fileToUpload.name}]`
+          : `[Text content for ${fileToUpload.name}]`;
 
         // 2. Create document in Firestore
         const docRef = await addDoc(collection(db, 'resources'), {
@@ -144,7 +170,7 @@ export const addResource = async (
         if (e.code === 'permission-denied') {
             throw new Error("You do not have permission to upload. Please check your account and Firestore/Storage rules.");
         }
-        throw new Error("Could not add resource. Please try again later.");
+        throw new Error("Could not add resource: " + e.message);
     }
 };
 
@@ -196,10 +222,15 @@ export const updateResourceStatus = async (resourceId: string, status: 'approved
 }
 
 export const getResources = async (): Promise<Resource[]> => {
-  const resourcesCol = collection(db, 'resources');
-  const resourceSnapshot = await getDocs(resourcesCol);
-  const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
-  return resourceList;
+  try {
+    const resourcesCol = collection(db, 'resources');
+    const resourceSnapshot = await getDocs(resourcesCol);
+    const resourceList = resourceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Resource));
+    return resourceList;
+  } catch(error) {
+    console.error("Failed to get resources:", error)
+    return []; // Return empty array on failure
+  }
 };
 
 export const getAdminResources = async (): Promise<Resource[]> => {
@@ -243,3 +274,5 @@ export const getFilters = () => ({
   semesters: defaultFilters.semesters,
   subjects: defaultFilters.subjects,
 });
+
+    
