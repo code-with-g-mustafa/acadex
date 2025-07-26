@@ -1,28 +1,41 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    match /resources/{resourceId} {
-      allow get: if resource.data.status == 'approved';
-      allow list: if request.auth != null;
-      allow create: if request.auth != null && 
-                      request.resource.data.uploaderId == request.auth.uid &&
-                      request.resource.data.status == 'pending';
-      allow update: if request.auth != null && (
-        (resource.data.uploaderId == request.auth.uid) || 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin')
-      );
-    }
     
+    // Users can only read their own data and can't be updated by others.
+    match /users/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Resources can be created by any authenticated user.
+    // They can be updated/deleted only by the uploader or an Admin.
+    // Approved resources can be read by anyone.
+    match /resources/{resourceId} {
+      allow create: if request.auth != null && 
+                      (request.resource.data.uploaderId == request.auth.uid) &&
+                      (request.resource.data.status == 'pending');
+                      
+      allow get: if resource.data.status == 'approved';
+      
+      allow list: if request.query.limit <= 100;
+
+      allow update: if request.auth != null && 
+                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+                       (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin' ||
+                        request.auth.uid == resource.data.uploaderId));
+                        
+      allow delete: if request.auth != null && 
+                      (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin');
+    }
+
+    // Metadata like universities and departments can be read by anyone
+    // but can only be updated by authenticated users (e.g., adding a new entry).
     match /metadata/{docId} {
-      allow read;
-      allow update: if request.auth != null;
+        allow read;
+        allow update: if request.auth != null;
     }
   }
 }
